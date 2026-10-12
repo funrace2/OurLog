@@ -325,7 +325,7 @@ struct SavedPlaceListView: View {
             .foregroundStyle(isSelected ? palette.ink : color)
             .padding(.vertical, 8)
             .padding(.horizontal, 12)
-            .sketchBox(seed: 305 &+ UInt64(title.count), fill: isSelected ? color.opacity(0.28) : palette.card, stroke: isSelected ? palette.ink : color, roughness: 1.1, lineWidth: isSelected ? 2.2 : 1.4)
+            .sketchBox(seed: sketchSeed(name), fill: isSelected ? color.opacity(0.28) : palette.card, stroke: isSelected ? palette.ink : color, roughness: 1.1, lineWidth: isSelected ? 2.2 : 1.4)
         }
         .buttonStyle(.plain)
     }
