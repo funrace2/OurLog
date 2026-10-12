@@ -2,7 +2,9 @@
 //  Theme.swift
 //  OurLog
 //
-//  앱 전체 색깔 테마. 사용자가 설정에서 고르면 두 사람 모두에게 적용된다.
+//  종이 & 잉크 디자인 토큰 (SpendLog 와 같은 손그림 스타일).
+//  테마를 고르면 종이 색과 펜 색이 함께 바뀌고, 둘 모두에게 똑같이 적용된다.
+//  잉크(글자·테두리)는 어느 종이에서나 같은 짙은 갈색이라 손글씨 느낌이 유지된다.
 //
 
 import SwiftUI
@@ -10,121 +12,97 @@ import SwiftUI
 // MARK: - 팔레트
 
 nonisolated struct ThemePalette {
-    /// 버튼·강조 요소의 주 색상
-    let primary: Color
-    /// primary 를 연하게 깐 배경 (뱃지, 칩)
-    let primarySoft: Color
-    /// 포인트 색 (하트, 진화 이펙트)
-    let accent: Color
-    /// 화면 바탕
-    let background: Color
-    /// 카드 바탕
-    let surface: Color
-    /// 카드 안에서 한 단계 더 들어간 바탕
-    let surfaceAlt: Color
-    let textPrimary: Color
-    let textSecondary: Color
-    /// 테두리·구분선
-    let outline: Color
+    /// 화면 바탕 종이
+    let paper: Color
+    /// 상자 안쪽 종이 (조금 더 밝다)
+    let card: Color
+    /// 입력칸처럼 한 단계 들어간 종이
+    let paperDeep: Color
+    /// 강조 펜 (디데이 숫자, 선택 표시, 버튼)
+    let pen: Color
+    /// 펜 색을 옅게 깐 형광펜
+    let penSoft: Color
+
+    // 모든 테마 공통
+    var ink: Color { Theme.ink }
+    var inkSoft: Color { Theme.inkSoft }
+
+    // 기존 화면 코드가 쓰는 이름 → 종이·잉크로 연결
+    var background: Color { paper }
+    var surface: Color { card }
+    var surfaceAlt: Color { paperDeep }
+    var primary: Color { pen }
+    var primarySoft: Color { penSoft }
+    var accent: Color { pen }
+    var textPrimary: Color { ink }
+    var textSecondary: Color { inkSoft }
+    var outline: Color { ink.opacity(0.28) }
+}
+
+nonisolated enum Theme {
+    static let ink = Color(hex: 0x26231C)
+    static let inkSoft = Color(hex: 0x6E695C)
+    static let redPen = Color(hex: 0xC0483A)    // 일요일
+    static let bluePen = Color(hex: 0x3C6491)   // 토요일
+
+    /// 나눔손글씨 다시 시작해. 번들에 없으면 시스템 글꼴로 대체된다.
+    static let fontName = "NanumDaSiSiJagHae"
+}
+
+extension Font {
+    /// 손글씨. 이 글꼴은 같은 크기에서 시스템 글꼴보다 작게 보여서 숫자를 넉넉히 준다.
+    static func hand(_ size: CGFloat, bold: Bool = false) -> Font {
+        let font = Font.custom(Theme.fontName, size: size)
+        return bold ? font.weight(.bold) : font
+    }
 }
 
 // MARK: - 테마
 
 nonisolated enum AppTheme: String, CaseIterable, Identifiable, Codable, Sendable {
-    case peach
-    case mint
-    case lavender
-    case butter
-    case sky
-    case cocoa
+    // rawValue 는 저장된 데이터와 맞추기 위해 예전 이름을 그대로 쓴다.
+    case butter     // 크림 종이 (기본, SpendLog 와 같은 색)
+    case peach      // 벚꽃 종이
+    case mint       // 민트 종이
+    case sky        // 하늘 종이
+    case lavender   // 라벤더 종이
+    case cocoa      // 코코아 종이
+
+    static let `default`: AppTheme = .butter
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
-        case .peach: "복숭아"
+        case .butter: "크림"
+        case .peach: "벚꽃"
         case .mint: "민트"
-        case .lavender: "라벤더"
-        case .butter: "버터"
         case .sky: "하늘"
+        case .lavender: "라벤더"
         case .cocoa: "코코아"
         }
     }
 
     var palette: ThemePalette {
         switch self {
-        case .peach:
-            ThemePalette(
-                primary: Color(light: 0xFF8FA3, dark: 0xFF9FB1),
-                primarySoft: Color(light: 0xFFE4EA, dark: 0x4A2F38),
-                accent: Color(light: 0xFF5D8F, dark: 0xFF7FA6),
-                background: Color(light: 0xFFF6F8, dark: 0x1C1518),
-                surface: Color(light: 0xFFFFFF, dark: 0x2A2126),
-                surfaceAlt: Color(light: 0xFFF0F4, dark: 0x352A30),
-                textPrimary: Color(light: 0x4A3B44, dark: 0xF4ECEF),
-                textSecondary: Color(light: 0x9A8A92, dark: 0xB6A6AE),
-                outline: Color(light: 0xFFDCE4, dark: 0x3F323A)
-            )
-        case .mint:
-            ThemePalette(
-                primary: Color(light: 0x49C5B6, dark: 0x5FD6C7),
-                primarySoft: Color(light: 0xD8F4F0, dark: 0x1F3F3B),
-                accent: Color(light: 0x2FA8A0, dark: 0x6FE0D2),
-                background: Color(light: 0xF2FBF9, dark: 0x121A19),
-                surface: Color(light: 0xFFFFFF, dark: 0x1E2827),
-                surfaceAlt: Color(light: 0xEBF8F5, dark: 0x273231),
-                textPrimary: Color(light: 0x334946, dark: 0xE9F4F2),
-                textSecondary: Color(light: 0x85A19D, dark: 0xA3BAB6),
-                outline: Color(light: 0xD3EEE9, dark: 0x2F3B3A)
-            )
-        case .lavender:
-            ThemePalette(
-                primary: Color(light: 0xA78BFA, dark: 0xB69DFB),
-                primarySoft: Color(light: 0xEBE3FF, dark: 0x332A4D),
-                accent: Color(light: 0x8B5CF6, dark: 0xC0AAFF),
-                background: Color(light: 0xF8F5FF, dark: 0x171425),
-                surface: Color(light: 0xFFFFFF, dark: 0x241F36),
-                surfaceAlt: Color(light: 0xF2EDFF, dark: 0x2D2742),
-                textPrimary: Color(light: 0x433A5C, dark: 0xEFEAFB),
-                textSecondary: Color(light: 0x8F86A8, dark: 0xADA3C6),
-                outline: Color(light: 0xE5DCFA, dark: 0x362F4D)
-            )
         case .butter:
-            ThemePalette(
-                primary: Color(light: 0xF0A93B, dark: 0xF5BA59),
-                primarySoft: Color(light: 0xFCEBCC, dark: 0x453419),
-                accent: Color(light: 0xE08A15, dark: 0xFFC978),
-                background: Color(light: 0xFFFBF2, dark: 0x1B1712),
-                surface: Color(light: 0xFFFFFF, dark: 0x282219),
-                surfaceAlt: Color(light: 0xFFF5E4, dark: 0x332C21),
-                textPrimary: Color(light: 0x4F4130, dark: 0xF6EFE3),
-                textSecondary: Color(light: 0x9C8C74, dark: 0xBCAE96),
-                outline: Color(light: 0xF6E6C8, dark: 0x3C3427)
-            )
+            ThemePalette(paper: Color(hex: 0xF3EEE1), card: Color(hex: 0xFCFAF2), paperDeep: Color(hex: 0xEAE3D2),
+                         pen: Color(hex: 0xC0483A), penSoft: Color(hex: 0xF2DDD3))
+        case .peach:
+            ThemePalette(paper: Color(hex: 0xF7E7E6), card: Color(hex: 0xFFF7F6), paperDeep: Color(hex: 0xEFD7D6),
+                         pen: Color(hex: 0xC4506A), penSoft: Color(hex: 0xF4D3DA))
+        case .mint:
+            ThemePalette(paper: Color(hex: 0xE4EFE6), card: Color(hex: 0xF6FBF6), paperDeep: Color(hex: 0xD4E5D8),
+                         pen: Color(hex: 0x3B8466), penSoft: Color(hex: 0xCFE6DA))
         case .sky:
-            ThemePalette(
-                primary: Color(light: 0x5BA9E8, dark: 0x74BAF2),
-                primarySoft: Color(light: 0xDCEDFB, dark: 0x1E3448),
-                accent: Color(light: 0x3489CE, dark: 0x8FCBFF),
-                background: Color(light: 0xF3F9FF, dark: 0x111921),
-                surface: Color(light: 0xFFFFFF, dark: 0x1C262F),
-                surfaceAlt: Color(light: 0xEBF4FD, dark: 0x25313B),
-                textPrimary: Color(light: 0x36444F, dark: 0xE9F1F8),
-                textSecondary: Color(light: 0x869AAA, dark: 0xA4B6C4),
-                outline: Color(light: 0xD7E8F6, dark: 0x2C3945)
-            )
+            ThemePalette(paper: Color(hex: 0xE4ECF4), card: Color(hex: 0xF6F9FC), paperDeep: Color(hex: 0xD3DEEB),
+                         pen: Color(hex: 0x3C6491), penSoft: Color(hex: 0xD3DEEC))
+        case .lavender:
+            ThemePalette(paper: Color(hex: 0xEBE6F2), card: Color(hex: 0xF9F6FC), paperDeep: Color(hex: 0xDDD5EA),
+                         pen: Color(hex: 0x76589F), penSoft: Color(hex: 0xE0D6EE))
         case .cocoa:
-            ThemePalette(
-                primary: Color(light: 0xB08663, dark: 0xC69C79),
-                primarySoft: Color(light: 0xF0E2D4, dark: 0x40311F),
-                accent: Color(light: 0x8E6543, dark: 0xD9B08C),
-                background: Color(light: 0xFCF7F2, dark: 0x191512),
-                surface: Color(light: 0xFFFFFF, dark: 0x262019),
-                surfaceAlt: Color(light: 0xF7EFE6, dark: 0x312921),
-                textPrimary: Color(light: 0x4B3D31, dark: 0xF3EBE2),
-                textSecondary: Color(light: 0x9B8878, dark: 0xBBA997),
-                outline: Color(light: 0xEADCCC, dark: 0x3A3127)
-            )
+            ThemePalette(paper: Color(hex: 0xEFE5D9), card: Color(hex: 0xFBF6F0), paperDeep: Color(hex: 0xE2D4C3),
+                         pen: Color(hex: 0x8A5A3C), penSoft: Color(hex: 0xEAD8C8))
         }
     }
 }
@@ -132,7 +110,7 @@ nonisolated enum AppTheme: String, CaseIterable, Identifiable, Codable, Sendable
 // MARK: - Environment
 
 private struct PaletteKey: EnvironmentKey {
-    static let defaultValue = AppTheme.peach.palette
+    static let defaultValue = AppTheme.default.palette
 }
 
 extension EnvironmentValues {
@@ -142,26 +120,15 @@ extension EnvironmentValues {
     }
 }
 
-// MARK: - Color 헬퍼
+// MARK: - 시드
 
-extension Color {
-    /// 라이트/다크 모드에 따라 자동으로 갈라지는 색.
-    init(light: UInt32, dark: UInt32) {
-        self.init(uiColor: UIColor { traits in
-            traits.userInterfaceStyle == .dark
-                ? UIColor(rgb: dark)
-                : UIColor(rgb: light)
-        })
+/// 손그림 도형의 떨림 모양을 정하는 시드. 같은 시드면 늘 같은 모양으로 그려져 다시 그려도 떨리지 않는다.
+nonisolated func sketchSeed(_ text: String, salt: UInt64 = 0) -> UInt64 {
+    // FNV-1a — 실행할 때마다 바뀌는 hashValue 대신 고정된 값을 쓴다
+    var h: UInt64 = 0xcbf29ce484222325
+    for b in text.utf8 {
+        h ^= UInt64(b)
+        h = h &* 0x100000001b3
     }
-}
-
-extension UIColor {
-    fileprivate convenience init(rgb: UInt32) {
-        self.init(
-            red: CGFloat((rgb >> 16) & 0xFF) / 255,
-            green: CGFloat((rgb >> 8) & 0xFF) / 255,
-            blue: CGFloat(rgb & 0xFF) / 255,
-            alpha: 1
-        )
-    }
+    return h ^ salt
 }
