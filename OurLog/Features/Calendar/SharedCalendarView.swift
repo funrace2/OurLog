@@ -66,14 +66,13 @@ struct SharedCalendarView: View {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(palette.primary)
-                    .frame(width: 32, height: 32)
-                    .background(palette.primarySoft, in: .circle)
+                    .sketchCircle(fill: palette.primarySoft, seed: 284, size: 32)
             }
 
             Spacer()
 
             Text(visibleMonth.formatted(.dateTime.year().month(.wide).locale(Locale(identifier: "ko_KR"))))
-                .font(.system(size: 17, weight: .heavy, design: .rounded))
+                .font(.hand(23, bold: true))
                 .foregroundStyle(palette.textPrimary)
 
             Spacer()
@@ -82,8 +81,7 @@ struct SharedCalendarView: View {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(palette.primary)
-                    .frame(width: 32, height: 32)
-                    .background(palette.primarySoft, in: .circle)
+                    .sketchCircle(fill: palette.primarySoft, seed: 291, size: 32)
             }
         }
     }
@@ -92,7 +90,7 @@ struct SharedCalendarView: View {
         HStack(spacing: 0) {
             ForEach(Array(["일", "월", "화", "수", "목", "금", "토"].enumerated()), id: \.offset) { index, day in
                 Text(day)
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .font(.hand(16, bold: true))
                     .foregroundStyle(weekdayColor(index))
                     .frame(maxWidth: .infinity)
             }
@@ -189,7 +187,6 @@ struct SharedCalendarView: View {
             if events.isEmpty && anniversaries.isEmpty {
                 CuteCard {
                     EmptyStateView(
-                        emoji: "🗓️",
                         title: "이 날은 일정이 없어요",
                         message: "둘의 약속을 등록해 보세요"
                     )
@@ -278,7 +275,7 @@ struct EventRow: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(event.title)
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .font(.hand(20, bold: true))
                     .foregroundStyle(palette.textPrimary)
                     .lineLimit(1)
 
@@ -290,7 +287,7 @@ struct EventRow: View {
                         Text("· \(place.name)").lineLimit(1)
                     }
                 }
-                .font(.system(size: 12, design: .rounded))
+                .font(.hand(16))
                 .foregroundStyle(palette.textSecondary)
             }
 

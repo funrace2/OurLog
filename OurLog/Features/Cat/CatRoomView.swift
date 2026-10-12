@@ -66,11 +66,11 @@ struct CatRoomView: View {
         .onTapGesture { pet() }
         .overlay(alignment: .bottomTrailing) {
             Text("톡 누르면 쓰다듬어요")
-                .font(.system(size: 11, weight: .medium, design: .rounded))
+                .font(.hand(15))
                 .foregroundStyle(palette.textSecondary)
                 .padding(.vertical, 5)
                 .padding(.horizontal, 10)
-                .background(palette.surface.opacity(0.9), in: .capsule)
+                .sketchBox(seed: 228, fill: palette.surface.opacity(0.9), roughness: 1.1, lineWidth: 1.4)
                 .padding(10)
         }
         .clipShape(.rect(cornerRadius: 12))
@@ -93,10 +93,10 @@ struct CatRoomView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(app.cat.name)
-                            .font(.system(size: 19, weight: .heavy, design: .rounded))
+                            .font(.hand(26, bold: true))
                             .foregroundStyle(palette.textPrimary)
                         Text("\(app.cat.stage.rawValue)단계 · \(app.cat.stage.displayName)")
-                            .font(.system(size: 13, weight: .medium, design: .rounded))
+                            .font(.hand(18))
                             .foregroundStyle(palette.textSecondary)
                     }
 
@@ -109,20 +109,19 @@ struct CatRoomView: View {
                         Image(systemName: "pencil")
                             .font(.system(size: 14, weight: .bold))
                             .foregroundStyle(palette.primary)
-                            .frame(width: 34, height: 34)
-                            .background(palette.primarySoft, in: .circle)
+                            .sketchCircle(fill: palette.primarySoft, seed: 221, size: 34)
                     }
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Text("애정도 \(app.cat.affection)")
-                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .font(.hand(18, bold: true))
                             .foregroundStyle(palette.textPrimary)
                         Spacer()
                         if let next = app.cat.stage.next {
                             Text("\(next.displayName)까지 \(app.cat.affectionToNextStage ?? 0)")
-                                .font(.system(size: 12, design: .rounded))
+                                .font(.hand(16))
                                 .foregroundStyle(palette.textSecondary)
                         }
                     }
@@ -145,7 +144,7 @@ struct CatRoomView: View {
                         .fill(reached ? palette.primary : palette.outline)
                         .frame(width: reached ? 11 : 8, height: reached ? 11 : 8)
                     Text("\(stage.rawValue)")
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .font(.hand(14, bold: true))
                         .foregroundStyle(reached ? palette.primary : palette.textSecondary)
                 }
                 .frame(maxWidth: .infinity)
@@ -176,18 +175,18 @@ struct CatRoomView: View {
                     ForEach(Array(actions.enumerated()), id: \.element.rawValue) { index, action in
                         HStack {
                             Text(action.label)
-                                .font(.system(size: 14, weight: .medium, design: .rounded))
+                                .font(.hand(19))
                                 .foregroundStyle(palette.textPrimary)
                             Spacer()
                             Text("+\(action.points)")
-                                .font(.system(size: 14, weight: .heavy, design: .rounded))
+                                .font(.hand(19, bold: true))
                                 .foregroundStyle(palette.accent)
                         }
                         .padding(.vertical, 12)
                         .padding(.horizontal, 16)
 
                         if index < actions.count - 1 {
-                            Divider().overlay(palette.outline).padding(.leading, 16)
+                            SketchDivider().padding(.leading, 16)
                         }
                     }
                 }
@@ -215,12 +214,12 @@ struct EvolutionCelebrationView: View {
                 Spacer()
 
                 Text("진화했어요!")
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .font(.hand(20, bold: true))
                     .foregroundStyle(palette.textSecondary)
                     .opacity(appeared ? 1 : 0)
 
                 Text(stage.displayName)
-                    .font(.system(size: 32, weight: .heavy, design: .rounded))
+                    .font(.hand(43, bold: true))
                     .foregroundStyle(palette.primary)
                     .scaleEffect(appeared ? 1 : 0.6)
 
@@ -229,7 +228,7 @@ struct EvolutionCelebrationView: View {
                     .rotationEffect(.degrees(appeared ? 0 : -18))
 
                 Text(stage.tagline)
-                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .font(.hand(19))
                     .foregroundStyle(palette.textSecondary)
                     .opacity(appeared ? 1 : 0)
 

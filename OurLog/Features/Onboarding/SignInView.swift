@@ -23,12 +23,12 @@ struct SignInView: View {
                 CatPortrait(stage: .kitten, size: 190)
 
                 Text("OurLog")
-                    .font(.system(size: 34, weight: .heavy, design: .rounded))
+                    .font(.hand(46, bold: true))
                     .foregroundStyle(palette.primary)
                     .padding(.top, 4)
 
                 Text("둘만의 기록을 한 곳에")
-                    .font(.system(size: 15, weight: .medium, design: .rounded))
+                    .font(.hand(20))
                     .foregroundStyle(palette.textSecondary)
                     .padding(.top, 6)
 
@@ -40,11 +40,10 @@ struct SignInView: View {
                             Image(systemName: highlight.symbol)
                                 .font(.system(size: 15, weight: .bold))
                                 .foregroundStyle(palette.primary)
-                                .frame(width: 32, height: 32)
-                                .background(palette.primarySoft, in: .circle)
+                                .sketchCircle(fill: palette.primarySoft, seed: 368, size: 32)
 
                             Text(highlight.text)
-                                .font(.system(size: 14, weight: .medium, design: .rounded))
+                                .font(.hand(19))
                                 .foregroundStyle(palette.textPrimary)
 
                             Spacer()
@@ -76,7 +75,7 @@ struct SignInView: View {
                 .padding(.horizontal, 28)
 
                 Text("로그인하면 둘 사이의 기록이 안전하게 보관돼요")
-                    .font(.system(size: 11, design: .rounded))
+                    .font(.hand(15))
                     .foregroundStyle(palette.textSecondary)
                     .padding(.top, 12)
                     .padding(.bottom, 28)

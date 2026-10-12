@@ -65,16 +65,16 @@ private struct InviteCard: View {
         CuteCard {
             VStack(alignment: .leading, spacing: 12) {
                 Text("상대방을 기다리는 중이에요")
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .font(.hand(22, bold: true))
                     .foregroundStyle(palette.textPrimary)
 
                 Text("이 코드를 알려주면 둘의 기록이 이어져요")
-                    .font(.system(size: 13, design: .rounded))
+                    .font(.hand(18))
                     .foregroundStyle(palette.textSecondary)
 
                 HStack {
                     Text(app.couple?.inviteCode ?? "------")
-                        .font(.system(size: 26, weight: .heavy, design: .monospaced))
+                        .font(.hand(35, bold: true))
                         .kerning(6)
                         .foregroundStyle(palette.primary)
 
@@ -89,13 +89,13 @@ private struct InviteCard: View {
                         }
                     } label: {
                         Label(copied ? "복사됨" : "복사", systemImage: copied ? "checkmark" : "doc.on.doc")
-                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .font(.hand(18, bold: true))
                     }
                     .buttonStyle(.softPlain)
                 }
                 .padding(.vertical, 12)
                 .padding(.horizontal, 16)
-                .background(palette.primarySoft, in: .rect(cornerRadius: 16))
+                .sketchBox(seed: 270, fill: palette.primarySoft, roughness: 1.3, lineWidth: 1.6)
             }
         }
     }
@@ -120,26 +120,26 @@ private struct DdayCard: View {
 
                 VStack(spacing: 2) {
                     Text("우리 만난 지")
-                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                        .font(.hand(18))
                         .foregroundStyle(palette.textSecondary)
 
                     HStack(alignment: .firstTextBaseline, spacing: 2) {
                         Text("\(app.couple?.daysTogether ?? 0)")
-                            .font(.system(size: 52, weight: .heavy, design: .rounded))
+                            .font(.hand(70, bold: true))
                             .contentTransition(.numericText())
                         Text("일")
-                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .font(.hand(30, bold: true))
                     }
                     .foregroundStyle(palette.primary)
                 }
 
                 if let startDate = app.couple?.startDate {
                     Text(startDate.formatted(.dateTime.year().month().day().locale(Locale(identifier: "ko_KR"))))
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .font(.hand(16))
                         .foregroundStyle(palette.textSecondary)
                         .padding(.vertical, 5)
                         .padding(.horizontal, 12)
-                        .background(palette.surfaceAlt, in: .capsule)
+                        .sketchBox(seed: 263, fill: palette.surfaceAlt, roughness: 1.1, lineWidth: 1.4)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -150,11 +150,10 @@ private struct DdayCard: View {
         VStack(spacing: 4) {
             Text(member?.emoji ?? "❔")
                 .font(.system(size: 26))
-                .frame(width: 52, height: 52)
-                .background(palette.primarySoft, in: .circle)
+                .sketchCircle(fill: palette.primarySoft, seed: 249, size: 52)
 
             Text(member?.displayName ?? "상대방")
-                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .font(.hand(16, bold: true))
                 .foregroundStyle(member == nil ? palette.textSecondary : palette.textPrimary)
                 .lineLimit(1)
         }
@@ -183,14 +182,14 @@ private struct CatSummaryCard: View {
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 6) {
                             Text(app.cat.name)
-                                .font(.system(size: 16, weight: .bold, design: .rounded))
+                                .font(.hand(22, bold: true))
                                 .foregroundStyle(palette.textPrimary)
                                 .lineLimit(1)
                             Chip(text: "\(app.cat.stage.rawValue)단계")
                         }
 
                         Text(app.cat.stage.tagline)
-                            .font(.system(size: 12, design: .rounded))
+                            .font(.hand(16))
                             .foregroundStyle(palette.textSecondary)
                             .lineLimit(1)
 
@@ -199,11 +198,11 @@ private struct CatSummaryCard: View {
 
                         if let remaining = app.cat.affectionToNextStage {
                             Text("다음 단계까지 \(remaining)")
-                                .font(.system(size: 11, weight: .medium, design: .rounded))
+                                .font(.hand(15))
                                 .foregroundStyle(palette.textSecondary)
                         } else {
                             Text("최종 진화 완료! 🎉")
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .font(.hand(15, bold: true))
                                 .foregroundStyle(palette.accent)
                         }
                     }
@@ -239,7 +238,6 @@ private struct AnniversarySection: View {
             if upcoming.isEmpty {
                 CuteCard {
                     EmptyStateView(
-                        emoji: "🎀",
                         title: "아직 등록된 기념일이 없어요",
                         message: "생일이나 특별한 날을 추가해 보세요"
                     )
@@ -250,7 +248,7 @@ private struct AnniversarySection: View {
                         ForEach(Array(upcoming.enumerated()), id: \.element.id) { index, anniversary in
                             AnniversaryRow(anniversary: anniversary)
                             if index < upcoming.count - 1 {
-                                Divider().overlay(palette.outline).padding(.leading, 56)
+                                SketchDivider().padding(.leading, 56)
                             }
                         }
                     }
@@ -269,15 +267,14 @@ struct AnniversaryRow: View {
         HStack(spacing: 12) {
             Text(anniversary.emoji)
                 .font(.system(size: 20))
-                .frame(width: 40, height: 40)
-                .background(palette.primarySoft, in: .circle)
+                .sketchCircle(fill: palette.primarySoft, seed: 256, size: 40)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(anniversary.title)
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .font(.hand(20, bold: true))
                     .foregroundStyle(palette.textPrimary)
                 Text(anniversary.nextOccurrence.formatted(.dateTime.month().day().locale(Locale(identifier: "ko_KR"))))
-                    .font(.system(size: 12, design: .rounded))
+                    .font(.hand(16))
                     .foregroundStyle(palette.textSecondary)
             }
 
@@ -287,7 +284,7 @@ struct AnniversaryRow: View {
                 Chip(text: "오늘!", systemImage: "party.popper.fill", tint: palette.accent)
             } else {
                 Text("D-\(anniversary.daysRemaining)")
-                    .font(.system(size: 15, weight: .heavy, design: .rounded))
+                    .font(.hand(20, bold: true))
                     .foregroundStyle(palette.primary)
             }
         }

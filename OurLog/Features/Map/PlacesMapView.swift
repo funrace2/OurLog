@@ -118,7 +118,7 @@ struct PlacesMapView: View {
                 .foregroundStyle(palette.textSecondary)
 
             TextField("장소, 가게 이름으로 검색", text: $searchText)
-                .font(.system(size: 15, design: .rounded))
+                .font(.hand(20))
                 .submitLabel(.search)
                 .onSubmit { Task { await runSearch() } }
 
@@ -136,9 +136,8 @@ struct PlacesMapView: View {
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 14)
-        .background(palette.surface, in: .capsule)
+        .sketchBox(seed: 319, fill: palette.surface, roughness: 1.1, lineWidth: 1.4)
         .overlay { Capsule().strokeBorder(palette.outline, lineWidth: 1) }
-        .shadow(color: .black.opacity(0.08), radius: 8, y: 3)
     }
 
     private func runSearch() async {
@@ -174,10 +173,10 @@ struct PlacesMapView: View {
                         HStack(spacing: 10) {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(result.name)
-                                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                                    .font(.hand(20, bold: true))
                                     .foregroundStyle(palette.textPrimary)
                                 Text(result.address)
-                                    .font(.system(size: 12, design: .rounded))
+                                    .font(.hand(16))
                                     .foregroundStyle(palette.textSecondary)
                                     .lineLimit(1)
                             }
@@ -191,14 +190,13 @@ struct PlacesMapView: View {
                     }
                     .buttonStyle(.plain)
 
-                    Divider().overlay(palette.outline).padding(.leading, 16)
+                    SketchDivider().padding(.leading, 16)
                 }
             }
         }
         .frame(maxHeight: 280)
-        .background(palette.surface, in: .rect(cornerRadius: 20))
+        .sketchBox(seed: 333, fill: palette.surface, roughness: 1.3, lineWidth: 1.6)
         .overlay { RoundedRectangle(cornerRadius: 20).strokeBorder(palette.outline, lineWidth: 1) }
-        .shadow(color: .black.opacity(0.1), radius: 12, y: 5)
         .padding(.horizontal, 16)
     }
 
@@ -230,14 +228,13 @@ struct PlacesMapView: View {
         } label: {
             HStack(spacing: 5) {
                 Image(systemName: symbol).font(.system(size: 11, weight: .bold))
-                Text(title).font(.system(size: 13, weight: .semibold, design: .rounded))
+                Text(title).font(.hand(18, bold: true))
             }
             .foregroundStyle(isSelected ? .white : color)
             .padding(.vertical, 8)
             .padding(.horizontal, 12)
-            .background(isSelected ? color : palette.surface, in: .capsule)
+            .sketchBox(seed: 326, fill: isSelected ? color : palette.surface, roughness: 1.1, lineWidth: 1.4)
             .overlay { Capsule().strokeBorder(isSelected ? .clear : palette.outline, lineWidth: 1) }
-            .shadow(color: .black.opacity(0.06), radius: 4, y: 2)
         }
         .buttonStyle(.plain)
     }
@@ -258,7 +255,6 @@ struct PlacePin: View {
             Circle()
                 .fill(color)
                 .frame(width: 32, height: 32)
-                .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
 
             Image(systemName: category?.symbol ?? "mappin")
                 .font(.system(size: 13, weight: .bold))

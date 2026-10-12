@@ -53,7 +53,7 @@ struct CoupleSetupView: View {
                                         .labelsHidden()
                                 }
                                 Text("이 날짜를 기준으로 디데이와 100일·주년 기념일이 자동으로 만들어져요.")
-                                    .font(.system(size: 12, design: .rounded))
+                                    .font(.hand(16))
                                     .foregroundStyle(palette.textSecondary)
                             } else {
                                 VStack(alignment: .leading, spacing: 8) {
@@ -61,18 +61,18 @@ struct CoupleSetupView: View {
                                     TextField("ABC123", text: $inviteCode)
                                         .textInputAutocapitalization(.characters)
                                         .autocorrectionDisabled()
-                                        .font(.system(size: 22, weight: .heavy, design: .monospaced))
+                                        .font(.hand(30, bold: true))
                                         .kerning(6)
                                         .multilineTextAlignment(.center)
                                         .padding(.vertical, 14)
                                         .frame(maxWidth: .infinity)
-                                        .background(palette.surfaceAlt, in: .rect(cornerRadius: 14))
+                                        .sketchBox(seed: 375, fill: palette.surfaceAlt, roughness: 1.3, lineWidth: 1.6)
                                         .onChange(of: inviteCode) { _, newValue in
                                             inviteCode = String(InviteCode.normalize(newValue).prefix(6))
                                         }
                                 }
                                 Text("상대방 설정 화면에 있는 6자리 코드를 입력해 주세요.")
-                                    .font(.system(size: 12, design: .rounded))
+                                    .font(.hand(16))
                                     .foregroundStyle(palette.textSecondary)
                             }
                         }
@@ -96,10 +96,10 @@ struct CoupleSetupView: View {
         VStack(spacing: 10) {
             CatPortrait(stage: .egg, size: 140)
             Text("둘을 연결해 주세요")
-                .font(.system(size: 22, weight: .heavy, design: .rounded))
+                .font(.hand(30, bold: true))
                 .foregroundStyle(palette.textPrimary)
             Text("한 명이 공간을 만들고, 다른 한 명이 초대코드로 들어와요")
-                .font(.system(size: 13, design: .rounded))
+                .font(.hand(18))
                 .foregroundStyle(palette.textSecondary)
                 .multilineTextAlignment(.center)
         }
@@ -108,7 +108,7 @@ struct CoupleSetupView: View {
 
     private func label(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 13, weight: .bold, design: .rounded))
+            .font(.hand(18, bold: true))
             .foregroundStyle(palette.textSecondary)
     }
 
@@ -116,10 +116,8 @@ struct CoupleSetupView: View {
         VStack(alignment: .leading, spacing: 8) {
             label(title)
             TextField(placeholder, text: text)
-                .font(.system(size: 16, weight: .medium, design: .rounded))
-                .padding(.vertical, 12)
-                .padding(.horizontal, 14)
-                .background(palette.surfaceAlt, in: .rect(cornerRadius: 14))
+                .font(.hand(22))
+                .sketchField()
         }
     }
 

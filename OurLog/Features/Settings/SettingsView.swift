@@ -59,21 +59,20 @@ struct SettingsView: View {
             HStack(spacing: 14) {
                 Text(app.me?.emoji ?? "🐣")
                     .font(.system(size: 30))
-                    .frame(width: 58, height: 58)
-                    .background(palette.primarySoft, in: .circle)
+                    .sketchCircle(fill: palette.primarySoft, seed: 235, size: 58)
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(app.me?.displayName ?? "나")
-                        .font(.system(size: 17, weight: .bold, design: .rounded))
+                        .font(.hand(23, bold: true))
                         .foregroundStyle(palette.textPrimary)
 
                     if let birthday = app.me?.birthday {
                         Text("생일 " + birthday.formatted(.dateTime.month().day().locale(Locale(identifier: "ko_KR"))))
-                            .font(.system(size: 12, design: .rounded))
+                            .font(.hand(16))
                             .foregroundStyle(palette.textSecondary)
                     } else {
                         Text("생일을 등록하면 기념일에 같이 떠요")
-                            .font(.system(size: 12, design: .rounded))
+                            .font(.hand(16))
                             .foregroundStyle(palette.textSecondary)
                     }
                 }
@@ -81,7 +80,7 @@ struct SettingsView: View {
                 Spacer()
 
                 Button("수정") { showProfileEditor = true }
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .font(.hand(19, bold: true))
                     .foregroundStyle(palette.primary)
             }
         }
@@ -133,7 +132,7 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.plain)
 
-                Divider().overlay(palette.outline).padding(.leading, 52)
+                SketchDivider().padding(.leading, 52)
 
                 Button {
                     Task {
@@ -149,7 +148,7 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.plain)
 
-                Divider().overlay(palette.outline).padding(.leading, 52)
+                SketchDivider().padding(.leading, 52)
 
                 Button { showSignOutConfirm = true } label: {
                     menuRow(icon: "rectangle.portrait.and.arrow.right", title: "로그아웃", tint: .red)
@@ -162,10 +161,10 @@ struct SettingsView: View {
     private var aboutCard: some View {
         VStack(spacing: 4) {
             Text("OurLog")
-                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .font(.hand(18, bold: true))
                 .foregroundStyle(palette.textSecondary)
             Text("둘만의 기록을 한 곳에 🐾")
-                .font(.system(size: 11, design: .rounded))
+                .font(.hand(15))
                 .foregroundStyle(palette.textSecondary)
         }
         .padding(.top, 8)
@@ -176,11 +175,11 @@ struct SettingsView: View {
     private func row(label: String, value: String, showChevron: Bool = false) -> some View {
         HStack {
             Text(label)
-                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .font(.hand(19))
                 .foregroundStyle(palette.textSecondary)
             Spacer()
             Text(value)
-                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .font(.hand(19, bold: true))
                 .foregroundStyle(palette.textPrimary)
             if showChevron {
                 Image(systemName: "chevron.right")
@@ -195,11 +194,10 @@ struct SettingsView: View {
             Image(systemName: icon)
                 .font(.system(size: 14, weight: .bold))
                 .foregroundStyle(tint ?? palette.primary)
-                .frame(width: 28, height: 28)
-                .background((tint ?? palette.primary).opacity(0.14), in: .circle)
+                .sketchCircle(fill: (tint ?? palette.primary).opacity(0.14), seed: 242, size: 28)
 
             Text(title)
-                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .font(.hand(20, bold: true))
                 .foregroundStyle(tint ?? palette.textPrimary)
 
             Spacer()
@@ -226,7 +224,7 @@ struct ThemePickerCard: View {
                 SectionHeader(title: "색깔 테마", systemImage: "paintpalette.fill")
 
                 Text("고른 테마는 둘 다에게 똑같이 적용돼요")
-                    .font(.system(size: 12, design: .rounded))
+                    .font(.hand(16))
                     .foregroundStyle(palette.textSecondary)
 
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: 10)], spacing: 10) {
@@ -244,7 +242,7 @@ struct ThemePickerCard: View {
                                 }
 
                                 Text(theme.displayName)
-                                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                                    .font(.hand(16, bold: true))
                                     .foregroundStyle(palette.textPrimary)
                             }
                             .frame(maxWidth: .infinity)
@@ -322,7 +320,7 @@ struct ProfileEditorView: View {
                         CuteCard {
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("프로필 이모지")
-                                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                                    .font(.hand(18, bold: true))
                                     .foregroundStyle(palette.textSecondary)
 
                                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 52), spacing: 8)], spacing: 8) {
@@ -352,25 +350,23 @@ struct ProfileEditorView: View {
                             VStack(alignment: .leading, spacing: 14) {
                                 VStack(alignment: .leading, spacing: 8) {
                                     Text("이름")
-                                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                                        .font(.hand(18, bold: true))
                                         .foregroundStyle(palette.textSecondary)
                                     TextField("이름", text: $name)
-                                        .font(.system(size: 16, weight: .medium, design: .rounded))
-                                        .padding(.vertical, 12)
-                                        .padding(.horizontal, 14)
-                                        .background(palette.surfaceAlt, in: .rect(cornerRadius: 14))
+                                        .font(.hand(22))
+                                        .sketchField()
                                 }
 
                                 Toggle(isOn: $hasBirthday) {
                                     Text("생일 등록")
-                                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                                        .font(.hand(20, bold: true))
                                         .foregroundStyle(palette.textPrimary)
                                 }
                                 .tint(palette.primary)
 
                                 if hasBirthday {
                                     DatePicker("생일", selection: $birthday, displayedComponents: .date)
-                                        .font(.system(size: 15, weight: .medium, design: .rounded))
+                                        .font(.hand(20))
                                 }
                             }
                         }

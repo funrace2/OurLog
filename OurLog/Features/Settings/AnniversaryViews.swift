@@ -35,7 +35,6 @@ struct AnniversaryListView: View {
                             if custom.isEmpty {
                                 CuteCard {
                                     EmptyStateView(
-                                        emoji: "🎀",
                                         title: "등록된 기념일이 없어요",
                                         message: "첫 여행, 프러포즈한 날처럼 둘만의 날을 더해보세요"
                                     )
@@ -53,7 +52,7 @@ struct AnniversaryListView: View {
                                             .buttonStyle(.plain)
 
                                             if index < custom.count - 1 {
-                                                Divider().overlay(palette.outline).padding(.leading, 56)
+                                                SketchDivider().padding(.leading, 56)
                                             }
                                         }
                                     }
@@ -73,14 +72,14 @@ struct AnniversaryListView: View {
                                     ForEach(Array(auto.enumerated()), id: \.element.id) { index, anniversary in
                                         AnniversaryRow(anniversary: anniversary)
                                         if index < auto.count - 1 {
-                                            Divider().overlay(palette.outline).padding(.leading, 56)
+                                            SketchDivider().padding(.leading, 56)
                                         }
                                     }
                                 }
                             }
 
                             Text("100일 단위와 주년, 생일은 따로 등록하지 않아도 자동으로 올라와요")
-                                .font(.system(size: 11, design: .rounded))
+                                .font(.hand(15))
                                 .foregroundStyle(palette.textSecondary)
                                 .multilineTextAlignment(.center)
                         }
@@ -142,22 +141,20 @@ struct AnniversaryEditorView: View {
                                 VStack(alignment: .leading, spacing: 8) {
                                     fieldLabel("기념일 이름")
                                     TextField("첫 여행, 프러포즈한 날…", text: $title)
-                                        .font(.system(size: 16, weight: .medium, design: .rounded))
-                                        .padding(.vertical, 12)
-                                        .padding(.horizontal, 14)
-                                        .background(palette.surfaceAlt, in: .rect(cornerRadius: 14))
+                                        .font(.hand(22))
+                                        .sketchField()
                                 }
 
                                 DatePicker("날짜", selection: $date, displayedComponents: .date)
-                                    .font(.system(size: 15, weight: .medium, design: .rounded))
+                                    .font(.hand(20))
 
                                 Toggle(isOn: $repeatsYearly) {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("매년 반복")
-                                            .font(.system(size: 15, weight: .semibold, design: .rounded))
+                                            .font(.hand(20, bold: true))
                                             .foregroundStyle(palette.textPrimary)
                                         Text("생일처럼 해마다 돌아오는 날이면 켜주세요")
-                                            .font(.system(size: 11, design: .rounded))
+                                            .font(.hand(15))
                                             .foregroundStyle(palette.textSecondary)
                                     }
                                 }
@@ -197,7 +194,7 @@ struct AnniversaryEditorView: View {
                                 fieldLabel("알림")
 
                                 Text("선택한 날짜의 오전 9시에 알려드려요")
-                                    .font(.system(size: 11, design: .rounded))
+                                    .font(.hand(15))
                                     .foregroundStyle(palette.textSecondary)
 
                                 HStack(spacing: 8) {
@@ -209,7 +206,7 @@ struct AnniversaryEditorView: View {
                                             else { notifyDaysBefore.insert(days) }
                                         } label: {
                                             Text(days == 0 ? "당일" : "\(days)일 전")
-                                                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                                .font(.hand(16, bold: true))
                                                 .foregroundStyle(isOn ? .white : palette.textSecondary)
                                                 .frame(maxWidth: .infinity)
                                                 .padding(.vertical, 9)
@@ -254,7 +251,7 @@ struct AnniversaryEditorView: View {
 
     private func fieldLabel(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 13, weight: .bold, design: .rounded))
+            .font(.hand(18, bold: true))
             .foregroundStyle(palette.textSecondary)
     }
 

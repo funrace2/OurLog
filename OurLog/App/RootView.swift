@@ -82,7 +82,7 @@ private struct LoadingScreen: View {
                     .offset(y: bounce ? -8 : 0)
                     .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: bounce)
                 Text("OurLog")
-                    .font(.system(size: 22, weight: .heavy, design: .rounded))
+                    .font(.hand(30, bold: true))
                     .foregroundStyle(palette.primary)
             }
             .onAppear { bounce = true }
@@ -129,14 +129,13 @@ struct ToastView: View {
             HStack(spacing: 8) {
                 Text(toast.emoji)
                 Text(toast.text)
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .font(.hand(19, bold: true))
                     .foregroundStyle(palette.textPrimary)
             }
             .padding(.vertical, 10)
             .padding(.horizontal, 16)
-            .background(palette.surface, in: .capsule)
+            .sketchBox(seed: 207, fill: palette.surface, roughness: 1.1, lineWidth: 1.4)
             .overlay { Capsule().strokeBorder(palette.outline, lineWidth: 1) }
-            .shadow(color: .black.opacity(0.12), radius: 10, y: 4)
             .padding(.top, 8)
             .transition(.move(edge: .top).combined(with: .opacity))
             .id(toast.id)

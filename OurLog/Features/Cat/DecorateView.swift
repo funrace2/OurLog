@@ -63,7 +63,7 @@ struct DecorateView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("완료") { dismiss() }
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .font(.hand(20, bold: true))
                 }
             }
         }
@@ -178,13 +178,13 @@ private struct DecorTile: View {
                 .frame(width: 40, height: 34)
 
                 Text(name)
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .font(.hand(15, bold: true))
                     .foregroundStyle(palette.textPrimary)
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
-            .background(isSelected ? palette.primarySoft : palette.surface, in: .rect(cornerRadius: 16))
+            .sketchBox(seed: 214, fill: isSelected ? palette.primarySoft : palette.surface, roughness: 1.3, lineWidth: 1.6)
             .overlay {
                 RoundedRectangle(cornerRadius: 16)
                     .strokeBorder(isSelected ? palette.primary : palette.outline, lineWidth: isSelected ? 2 : 1)

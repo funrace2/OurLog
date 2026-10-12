@@ -30,10 +30,10 @@ struct SavePlaceView: View {
                         CuteCard {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text(result.name)
-                                    .font(.system(size: 19, weight: .heavy, design: .rounded))
+                                    .font(.hand(26, bold: true))
                                     .foregroundStyle(palette.textPrimary)
                                 Text(result.address)
-                                    .font(.system(size: 13, design: .rounded))
+                                    .font(.hand(18))
                                     .foregroundStyle(palette.textSecondary)
                                 if !result.category.isEmpty {
                                     Chip(text: result.category).padding(.top, 4)
@@ -46,10 +46,10 @@ struct SavePlaceView: View {
                         CuteCard {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("메모")
-                                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                                    .font(.hand(18, bold: true))
                                     .foregroundStyle(palette.textSecondary)
                                 TextField("여기 왜 가고 싶은지 적어두면 좋아요", text: $memo, axis: .vertical)
-                                    .font(.system(size: 15, design: .rounded))
+                                    .font(.hand(20))
                                     .lineLimit(3...6)
                             }
                         }
@@ -98,7 +98,7 @@ struct CategoryPicker: View {
         CuteCard {
             VStack(alignment: .leading, spacing: 10) {
                 Text("카테고리")
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .font(.hand(18, bold: true))
                     .foregroundStyle(palette.textSecondary)
 
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: 8)], spacing: 8) {
@@ -111,7 +111,7 @@ struct CategoryPicker: View {
                             HStack(spacing: 5) {
                                 Image(systemName: category.symbol).font(.system(size: 12, weight: .bold))
                                 Text(category.name)
-                                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                    .font(.hand(18, bold: true))
                                     .lineLimit(1)
                             }
                             .foregroundStyle(isSelected ? .white : category.color)
@@ -163,7 +163,7 @@ struct PlaceDetailView: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 HStack {
                                     Text(place.name)
-                                        .font(.system(size: 20, weight: .heavy, design: .rounded))
+                                        .font(.hand(27, bold: true))
                                         .foregroundStyle(palette.textPrimary)
                                     Spacer()
                                     if let category = app.category(id: place.categoryID) {
@@ -172,21 +172,21 @@ struct PlaceDetailView: View {
                                 }
 
                                 Text(place.address)
-                                    .font(.system(size: 13, design: .rounded))
+                                    .font(.hand(18))
                                     .foregroundStyle(palette.textSecondary)
 
                                 if !place.memo.isEmpty {
                                     Text(place.memo)
-                                        .font(.system(size: 14, design: .rounded))
+                                        .font(.hand(19))
                                         .foregroundStyle(palette.textPrimary)
                                         .padding(.top, 6)
                                         .padding(12)
                                         .frame(maxWidth: .infinity, alignment: .leading)
-                                        .background(palette.surfaceAlt, in: .rect(cornerRadius: 14))
+                                        .sketchBox(seed: 312, fill: palette.surfaceAlt, roughness: 1.3, lineWidth: 1.6)
                                 }
 
                                 Text("\(app.couple?.member(id: place.createdBy)?.displayName ?? "누군가") 님이 저장했어요")
-                                    .font(.system(size: 11, design: .rounded))
+                                    .font(.hand(15))
                                     .foregroundStyle(palette.textSecondary)
                                     .padding(.top, 4)
                             }
@@ -276,7 +276,6 @@ struct SavedPlaceListView: View {
                         if filtered.isEmpty {
                             CuteCard {
                                 EmptyStateView(
-                                    emoji: "📍",
                                     title: "저장된 장소가 없어요",
                                     message: "지도에서 검색해서 가보고 싶은 곳을 담아보세요"
                                 )
@@ -316,12 +315,12 @@ struct SavedPlaceListView: View {
         } label: {
             HStack(spacing: 5) {
                 Image(systemName: symbol).font(.system(size: 11, weight: .bold))
-                Text(name).font(.system(size: 13, weight: .semibold, design: .rounded))
+                Text(name).font(.hand(18, bold: true))
             }
             .foregroundStyle(isSelected ? .white : color)
             .padding(.vertical, 8)
             .padding(.horizontal, 12)
-            .background(isSelected ? color : palette.surface, in: .capsule)
+            .sketchBox(seed: 305, fill: isSelected ? color : palette.surface, roughness: 1.1, lineWidth: 1.4)
             .overlay { Capsule().strokeBorder(isSelected ? .clear : palette.outline, lineWidth: 1) }
         }
         .buttonStyle(.plain)
@@ -342,13 +341,12 @@ struct PlaceRow: View {
                 Image(systemName: category?.symbol ?? "mappin")
                     .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(.white)
-                    .frame(width: 40, height: 40)
-                    .background(category?.color ?? palette.primary, in: .circle)
+                    .sketchCircle(fill: category?.color ?? palette.primary, seed: 298, size: 40)
 
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
                         Text(place.name)
-                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                            .font(.hand(20, bold: true))
                             .foregroundStyle(palette.textPrimary)
                             .lineLimit(1)
 
@@ -360,7 +358,7 @@ struct PlaceRow: View {
                     }
 
                     Text(place.memo.isEmpty ? place.address : place.memo)
-                        .font(.system(size: 12, design: .rounded))
+                        .font(.hand(16))
                         .foregroundStyle(palette.textSecondary)
                         .lineLimit(1)
                 }

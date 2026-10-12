@@ -25,7 +25,6 @@ struct DiaryListView: View {
                     if app.diaries.isEmpty {
                         CuteCard {
                             EmptyStateView(
-                                emoji: "📔",
                                 title: "아직 쓴 일기가 없어요",
                                 message: "오늘 있었던 일을 사진과 함께 남겨보세요"
                             )
@@ -85,11 +84,11 @@ struct DiaryCard: View {
 
                         if entry.photoIDs.count > 1 {
                             Label("\(entry.photoIDs.count)", systemImage: "photo.stack.fill")
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .font(.hand(15, bold: true))
                                 .foregroundStyle(.white)
                                 .padding(.vertical, 5)
                                 .padding(.horizontal, 9)
-                                .background(.black.opacity(0.45), in: .capsule)
+                                .sketchBox(seed: 340, fill: .black.opacity(0.45), roughness: 1.1, lineWidth: 1.4)
                                 .padding(10)
                         }
                     }
@@ -100,7 +99,7 @@ struct DiaryCard: View {
                         Text(entry.mood.emoji).font(.system(size: 18))
 
                         Text(entry.title)
-                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .font(.hand(22, bold: true))
                             .foregroundStyle(palette.textPrimary)
                             .lineLimit(1)
 
@@ -112,7 +111,7 @@ struct DiaryCard: View {
 
                     if !entry.body.isEmpty {
                         Text(entry.body)
-                            .font(.system(size: 13, design: .rounded))
+                            .font(.hand(18))
                             .foregroundStyle(palette.textSecondary)
                             .lineLimit(2)
                             .multilineTextAlignment(.leading)
@@ -120,7 +119,7 @@ struct DiaryCard: View {
 
                     HStack(spacing: 6) {
                         Text(entry.date.formatted(.dateTime.year().month().day().locale(Locale(identifier: "ko_KR"))))
-                            .font(.system(size: 11, weight: .medium, design: .rounded))
+                            .font(.hand(15))
                             .foregroundStyle(palette.textSecondary)
 
                         if let place = app.place(id: entry.placeID) {
@@ -159,12 +158,12 @@ struct DiaryThumbnail: View {
             .clipShape(.rect(cornerRadius: 16))
 
             Text(entry.title)
-                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .font(.hand(16, bold: true))
                 .foregroundStyle(palette.textPrimary)
                 .lineLimit(1)
 
             Text(entry.date.formatted(.dateTime.month().day().locale(Locale(identifier: "ko_KR"))))
-                .font(.system(size: 10, design: .rounded))
+                .font(.hand(14))
                 .foregroundStyle(palette.textSecondary)
         }
         .frame(width: 118)
@@ -210,10 +209,10 @@ struct DiaryDetailView: View {
                                 Text(entry.mood.emoji).font(.system(size: 26))
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(entry.title)
-                                        .font(.system(size: 20, weight: .heavy, design: .rounded))
+                                        .font(.hand(27, bold: true))
                                         .foregroundStyle(palette.textPrimary)
                                     Text(entry.date.formatted(.dateTime.year().month().day().weekday(.wide).locale(Locale(identifier: "ko_KR"))))
-                                        .font(.system(size: 12, design: .rounded))
+                                        .font(.hand(16))
                                         .foregroundStyle(palette.textSecondary)
                                 }
                             }
@@ -224,13 +223,13 @@ struct DiaryDetailView: View {
 
                             if !entry.body.isEmpty {
                                 Text(entry.body)
-                                    .font(.system(size: 15, design: .rounded))
+                                    .font(.hand(20))
                                     .foregroundStyle(palette.textPrimary)
                                     .lineSpacing(4)
                             }
 
                             Text("\(app.couple?.member(id: entry.authorID)?.displayName ?? "누군가") 님이 씀")
-                                .font(.system(size: 11, design: .rounded))
+                                .font(.hand(15))
                                 .foregroundStyle(palette.textSecondary)
                         }
                     }
@@ -296,14 +295,12 @@ struct DiaryEditorView: View {
                                 VStack(alignment: .leading, spacing: 8) {
                                     fieldLabel("제목")
                                     TextField("오늘 하루를 한 줄로", text: $title)
-                                        .font(.system(size: 16, weight: .medium, design: .rounded))
-                                        .padding(.vertical, 12)
-                                        .padding(.horizontal, 14)
-                                        .background(palette.surfaceAlt, in: .rect(cornerRadius: 14))
+                                        .font(.hand(22))
+                                        .sketchField()
                                 }
 
                                 DatePicker("날짜", selection: $date, displayedComponents: .date)
-                                    .font(.system(size: 15, weight: .medium, design: .rounded))
+                                    .font(.hand(20))
                             }
                         }
 
@@ -311,7 +308,7 @@ struct DiaryEditorView: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 fieldLabel("내용")
                                 TextField("어떤 하루였나요?", text: $bodyText, axis: .vertical)
-                                    .font(.system(size: 15, design: .rounded))
+                                    .font(.hand(20))
                                     .lineLimit(6...14)
                             }
                         }
@@ -357,11 +354,11 @@ struct DiaryEditorView: View {
                                 Image(systemName: "plus")
                                     .font(.system(size: 20, weight: .bold))
                                 Text("추가")
-                                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                    .font(.hand(15, bold: true))
                             }
                             .foregroundStyle(palette.primary)
                             .frame(width: 84, height: 84)
-                            .background(palette.primarySoft, in: .rect(cornerRadius: 16))
+                            .sketchBox(seed: 354, fill: palette.primarySoft, roughness: 1.3, lineWidth: 1.6)
                         }
 
                         ForEach(photoIDs, id: \.self) { photoID in
@@ -432,12 +429,12 @@ struct DiaryEditorView: View {
                             VStack(spacing: 3) {
                                 Text(option.emoji).font(.system(size: 22))
                                 Text(option.label)
-                                    .font(.system(size: 9, weight: .semibold, design: .rounded))
+                                    .font(.hand(12, bold: true))
                                     .foregroundStyle(isSelected ? palette.primary : palette.textSecondary)
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 8)
-                            .background(isSelected ? palette.primarySoft : .clear, in: .rect(cornerRadius: 14))
+                            .sketchBox(seed: 361, fill: isSelected ? palette.primarySoft : .clear, roughness: 1.3, lineWidth: 1.6)
                         }
                         .buttonStyle(.plain)
                     }
@@ -455,7 +452,7 @@ struct DiaryEditorView: View {
 
                 if app.places.isEmpty {
                     Text("지도에서 장소를 저장하면 여기에 연결할 수 있어요")
-                        .font(.system(size: 12, design: .rounded))
+                        .font(.hand(16))
                         .foregroundStyle(palette.textSecondary)
                 } else {
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -466,12 +463,12 @@ struct DiaryEditorView: View {
                                     placeID = isSelected ? nil : place.id
                                 } label: {
                                     Text(place.name)
-                                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                        .font(.hand(18, bold: true))
                                         .foregroundStyle(isSelected ? .white : palette.textPrimary)
                                         .lineLimit(1)
                                         .padding(.vertical, 8)
                                         .padding(.horizontal, 12)
-                                        .background(isSelected ? palette.primary : palette.surfaceAlt, in: .capsule)
+                                        .sketchBox(seed: 347, fill: isSelected ? palette.primary : palette.surfaceAlt, roughness: 1.1, lineWidth: 1.4)
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -485,7 +482,7 @@ struct DiaryEditorView: View {
 
     private func fieldLabel(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 13, weight: .bold, design: .rounded))
+            .font(.hand(18, bold: true))
             .foregroundStyle(palette.textSecondary)
     }
 

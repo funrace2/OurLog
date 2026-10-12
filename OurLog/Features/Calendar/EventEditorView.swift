@@ -37,10 +37,8 @@ struct EventEditorView: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 fieldLabel("무엇을 하나요?")
                                 TextField("데이트, 기념일 저녁, 영화…", text: $title)
-                                    .font(.system(size: 16, weight: .medium, design: .rounded))
-                                    .padding(.vertical, 12)
-                                    .padding(.horizontal, 14)
-                                    .background(palette.surfaceAlt, in: .rect(cornerRadius: 14))
+                                    .font(.hand(22))
+                                    .sketchField()
                             }
                         }
 
@@ -48,7 +46,7 @@ struct EventEditorView: View {
                             VStack(alignment: .leading, spacing: 14) {
                                 Toggle(isOn: $isAllDay) {
                                     Text("하루 종일")
-                                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                                        .font(.hand(20, bold: true))
                                         .foregroundStyle(palette.textPrimary)
                                 }
                                 .tint(palette.primary)
@@ -58,7 +56,7 @@ struct EventEditorView: View {
                                     selection: $startDate,
                                     displayedComponents: isAllDay ? .date : [.date, .hourAndMinute]
                                 )
-                                .font(.system(size: 15, weight: .medium, design: .rounded))
+                                .font(.hand(20))
 
                                 DatePicker(
                                     "종료",
@@ -66,7 +64,7 @@ struct EventEditorView: View {
                                     in: startDate...,
                                     displayedComponents: isAllDay ? .date : [.date, .hourAndMinute]
                                 )
-                                .font(.system(size: 15, weight: .medium, design: .rounded))
+                                .font(.hand(20))
                             }
                         }
 
@@ -76,7 +74,7 @@ struct EventEditorView: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 fieldLabel("메모")
                                 TextField("준비물이나 하고 싶은 말", text: $memo, axis: .vertical)
-                                    .font(.system(size: 15, design: .rounded))
+                                    .font(.hand(20))
                                     .lineLimit(3...6)
                             }
                         }
@@ -118,7 +116,7 @@ struct EventEditorView: View {
 
                 if app.places.isEmpty {
                     Text("저장한 장소가 있으면 여기에 연결할 수 있어요")
-                        .font(.system(size: 12, design: .rounded))
+                        .font(.hand(16))
                         .foregroundStyle(palette.textSecondary)
                 } else {
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -129,12 +127,12 @@ struct EventEditorView: View {
                                     placeID = isSelected ? nil : place.id
                                 } label: {
                                     Text(place.name)
-                                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                        .font(.hand(18, bold: true))
                                         .foregroundStyle(isSelected ? .white : palette.textPrimary)
                                         .lineLimit(1)
                                         .padding(.vertical, 8)
                                         .padding(.horizontal, 12)
-                                        .background(isSelected ? palette.primary : palette.surfaceAlt, in: .capsule)
+                                        .sketchBox(seed: 277, fill: isSelected ? palette.primary : palette.surfaceAlt, roughness: 1.1, lineWidth: 1.4)
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -148,7 +146,7 @@ struct EventEditorView: View {
 
     private func fieldLabel(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 13, weight: .bold, design: .rounded))
+            .font(.hand(18, bold: true))
             .foregroundStyle(palette.textSecondary)
     }
 
