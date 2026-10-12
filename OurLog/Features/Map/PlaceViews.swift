@@ -114,11 +114,16 @@ struct CategoryPicker: View {
                                     .font(.hand(18, bold: true))
                                     .lineLimit(1)
                             }
-                            .foregroundStyle(isSelected ? .white : category.color)
+                            .foregroundStyle(isSelected ? palette.ink : category.color)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(isSelected ? category.color : category.color.opacity(0.12),
-                                        in: .rect(cornerRadius: 14))
+                            .padding(.vertical, 8)
+                            .sketchBox(
+                                seed: sketchSeed(category.id),
+                                fill: isSelected ? category.color.opacity(0.28) : palette.card,
+                                stroke: isSelected ? palette.ink : category.color,
+                                roughness: 1.2,
+                                lineWidth: isSelected ? 2.2 : 1.4
+                            )
                         }
                         .buttonStyle(.plain)
                     }

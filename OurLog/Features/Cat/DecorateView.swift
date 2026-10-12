@@ -34,11 +34,8 @@ struct DecorateView: View {
                 VStack(spacing: 14) {
                     preview
 
-                    Picker("", selection: $tab) {
-                        ForEach(Tab.allCases) { Text($0.title).tag($0) }
-                    }
-                    .pickerStyle(.segmented)
-                    .padding(.horizontal, 20)
+                    SketchPicker(selection: $tab, options: Tab.allCases.map { ($0, $0.title) })
+                        .padding(.horizontal, 20)
 
                     ScrollView {
                         VStack(spacing: 18) {
@@ -184,11 +181,12 @@ private struct DecorTile: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
-            .sketchBox(seed: 214, fill: isSelected ? palette.primarySoft : palette.surface, roughness: 1.3, lineWidth: 1.6)
-            .overlay {
-                RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(isSelected ? palette.primary : palette.outline, lineWidth: isSelected ? 2 : 1)
-            }
+            .sketchBox(
+                seed: sketchSeed(name),
+                fill: isSelected ? palette.primarySoft : palette.surface,
+                roughness: 1.3,
+                lineWidth: isSelected ? 2.6 : 1.4
+            )
         }
         .buttonStyle(.plain)
     }

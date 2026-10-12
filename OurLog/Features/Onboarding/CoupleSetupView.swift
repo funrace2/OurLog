@@ -36,10 +36,7 @@ struct CoupleSetupView: View {
                 VStack(spacing: 20) {
                     header
 
-                    Picker("", selection: $mode) {
-                        ForEach(Mode.allCases) { Text($0.title).tag($0) }
-                    }
-                    .pickerStyle(.segmented)
+                    SketchPicker(selection: $mode, options: Mode.allCases.map { ($0, $0.title) })
 
                     CuteCard {
                         VStack(alignment: .leading, spacing: 18) {

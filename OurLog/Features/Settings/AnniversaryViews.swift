@@ -171,17 +171,11 @@ struct AnniversaryEditorView: View {
                                         Button { emoji = choice } label: {
                                             Text(choice)
                                                 .font(.system(size: 22))
-                                                .frame(width: 46, height: 46)
-                                                .background(
-                                                    emoji == choice ? palette.primarySoft : palette.surfaceAlt,
-                                                    in: .circle
+                                                .sketchCircle(
+                                                    fill: emoji == choice ? palette.primarySoft : palette.card,
+                                                    seed: sketchSeed(choice),
+                                                    size: 46
                                                 )
-                                                .overlay {
-                                                    Circle().strokeBorder(
-                                                        emoji == choice ? palette.primary : .clear,
-                                                        lineWidth: 2
-                                                    )
-                                                }
                                         }
                                         .buttonStyle(.plain)
                                     }
@@ -207,11 +201,15 @@ struct AnniversaryEditorView: View {
                                         } label: {
                                             Text(days == 0 ? "당일" : "\(days)일 전")
                                                 .font(.hand(16, bold: true))
-                                                .foregroundStyle(isOn ? .white : palette.textSecondary)
+                                                .foregroundStyle(isOn ? palette.ink : palette.textSecondary)
                                                 .frame(maxWidth: .infinity)
-                                                .padding(.vertical, 9)
-                                                .background(isOn ? palette.primary : palette.surfaceAlt,
-                                                            in: .capsule)
+                                                .padding(.vertical, 7)
+                                                .sketchBox(
+                                                    seed: UInt64(days) &+ 70,
+                                                    fill: isOn ? palette.primarySoft : palette.card,
+                                                    roughness: 1.2,
+                                                    lineWidth: isOn ? 2 : 1.2
+                                                )
                                         }
                                         .buttonStyle(.plain)
                                     }

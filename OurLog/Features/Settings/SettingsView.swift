@@ -247,12 +247,13 @@ struct ThemePickerCard: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
-                            .background(isSelected ? theme.palette.primarySoft : palette.surfaceAlt,
-                                        in: .rect(cornerRadius: 16))
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 16)
-                                    .strokeBorder(isSelected ? theme.palette.primary : .clear, lineWidth: 2)
-                            }
+                            // 타일 자체를 그 테마의 종이로 칠해서 고르기 전에 색을 미리 본다
+                            .sketchBox(
+                                seed: sketchSeed(theme.rawValue),
+                                fill: theme.palette.paper,
+                                stroke: isSelected ? theme.palette.pen : palette.ink,
+                                lineWidth: isSelected ? 3 : 1.6
+                            )
                         }
                         .buttonStyle(.plain)
                     }
@@ -328,17 +329,11 @@ struct ProfileEditorView: View {
                                         Button { emoji = choice } label: {
                                             Text(choice)
                                                 .font(.system(size: 24))
-                                                .frame(width: 50, height: 50)
-                                                .background(
-                                                    emoji == choice ? palette.primarySoft : palette.surfaceAlt,
-                                                    in: .circle
+                                                .sketchCircle(
+                                                    fill: emoji == choice ? palette.primarySoft : palette.card,
+                                                    seed: sketchSeed(choice),
+                                                    size: 50
                                                 )
-                                                .overlay {
-                                                    Circle().strokeBorder(
-                                                        emoji == choice ? palette.primary : .clear,
-                                                        lineWidth: 2
-                                                    )
-                                                }
                                         }
                                         .buttonStyle(.plain)
                                     }
