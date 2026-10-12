@@ -464,11 +464,11 @@ struct DiaryEditorView: View {
                                 } label: {
                                     Text(place.name)
                                         .font(.hand(18, bold: true))
-                                        .foregroundStyle(isSelected ? .white : palette.textPrimary)
+                                        .foregroundStyle(palette.textPrimary)
                                         .lineLimit(1)
                                         .padding(.vertical, 8)
                                         .padding(.horizontal, 12)
-                                        .sketchBox(seed: 347, fill: isSelected ? palette.primary : palette.surfaceAlt, roughness: 1.1, lineWidth: 1.4)
+                                        .sketchBox(seed: sketchSeed(place.id), fill: isSelected ? palette.primarySoft : palette.card, roughness: 1.1, lineWidth: isSelected ? 2.4 : 1.3)
                                 }
                                 .buttonStyle(.plain)
                             }

@@ -99,8 +99,8 @@ struct SharedCalendarView: View {
 
     private func weekdayColor(_ index: Int) -> Color {
         switch index {
-        case 0: .red.opacity(0.75)
-        case 6: .blue.opacity(0.7)
+        case 0: Theme.redPen
+        case 6: Theme.bluePen
         default: palette.textSecondary
         }
     }
@@ -229,10 +229,12 @@ private struct DayCell: View {
                 .foregroundStyle(textColor)
                 .frame(width: 30, height: 30)
                 .background {
+                    let day = UInt64(Calendar.dday.component(.day, from: date))
                     if isSelected {
-                        Circle().fill(palette.primary)
+                        SketchCircle(seed: day &+ 900).fill(palette.primarySoft)
+                        SketchCircle(seed: day &+ 900).stroke(palette.ink, lineWidth: 1.8)
                     } else if isToday {
-                        Circle().strokeBorder(palette.primary, lineWidth: 1.5)
+                        SketchCircle(seed: day &+ 900).stroke(Theme.redPen, lineWidth: 2)
                     }
                 }
 
@@ -248,12 +250,10 @@ private struct DayCell: View {
     }
 
     private var textColor: Color {
-        if isSelected { return .white }
-
         let weekday = Calendar.dday.component(.weekday, from: date)
         switch weekday {
-        case 1: return .red.opacity(0.8)
-        case 7: return .blue.opacity(0.75)
+        case 1: return Theme.redPen
+        case 7: return Theme.bluePen
         default: return palette.textPrimary
         }
     }
