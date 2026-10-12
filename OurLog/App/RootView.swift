@@ -135,7 +135,6 @@ struct ToastView: View {
             .padding(.vertical, 10)
             .padding(.horizontal, 16)
             .sketchBox(seed: 207, fill: palette.surface, roughness: 1.1, lineWidth: 1.4)
-            .overlay { Capsule().strokeBorder(palette.outline, lineWidth: 1) }
             .padding(.top, 8)
             .transition(.move(edge: .top).combined(with: .opacity))
             .id(toast.id)

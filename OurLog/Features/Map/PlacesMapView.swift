@@ -137,7 +137,6 @@ struct PlacesMapView: View {
         .padding(.vertical, 12)
         .padding(.horizontal, 14)
         .sketchBox(seed: 319, fill: palette.surface, roughness: 1.1, lineWidth: 1.4)
-        .overlay { Capsule().strokeBorder(palette.outline, lineWidth: 1) }
     }
 
     private func runSearch() async {
@@ -196,7 +195,6 @@ struct PlacesMapView: View {
         }
         .frame(maxHeight: 280)
         .sketchBox(seed: 333, fill: palette.surface, roughness: 1.3, lineWidth: 1.6)
-        .overlay { RoundedRectangle(cornerRadius: 20).strokeBorder(palette.outline, lineWidth: 1) }
         .padding(.horizontal, 16)
     }
 
@@ -234,7 +232,6 @@ struct PlacesMapView: View {
             .padding(.vertical, 8)
             .padding(.horizontal, 12)
             .sketchBox(seed: 326, fill: isSelected ? color : palette.surface, roughness: 1.1, lineWidth: 1.4)
-            .overlay { Capsule().strokeBorder(isSelected ? .clear : palette.outline, lineWidth: 1) }
         }
         .buttonStyle(.plain)
     }

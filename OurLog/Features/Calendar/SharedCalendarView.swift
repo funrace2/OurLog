@@ -225,7 +225,7 @@ private struct DayCell: View {
     var body: some View {
         VStack(spacing: 3) {
             Text("\(Calendar.dday.component(.day, from: date))")
-                .font(.system(size: 14, weight: isSelected || isToday ? .heavy : .medium, design: .rounded))
+                .font(.hand(20, bold: isSelected || isToday))
                 .foregroundStyle(textColor)
                 .frame(width: 30, height: 30)
                 .background {

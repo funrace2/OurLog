@@ -321,7 +321,6 @@ struct SavedPlaceListView: View {
             .padding(.vertical, 8)
             .padding(.horizontal, 12)
             .sketchBox(seed: 305, fill: isSelected ? color : palette.surface, roughness: 1.1, lineWidth: 1.4)
-            .overlay { Capsule().strokeBorder(isSelected ? .clear : palette.outline, lineWidth: 1) }
         }
         .buttonStyle(.plain)
     }
