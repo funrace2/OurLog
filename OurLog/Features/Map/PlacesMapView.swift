@@ -286,5 +286,5 @@ extension CLLocationCoordinate2D {
 #Preview {
     PlacesMapView()
         .environment(AppEnvironment.makeAppState())
-        .environment(\.palette, AppTheme.peach.palette)
+        .environment(\.palette, AppTheme.default.palette)
 }

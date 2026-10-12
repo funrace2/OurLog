@@ -17,7 +17,7 @@ nonisolated struct PlaceCategory: Identifiable, Codable, Hashable, Sendable {
     var symbol: String
     var colorHex: UInt32
 
-    var color: Color { Color(light: colorHex, dark: colorHex) }
+    var color: Color { Color(hex: colorHex) }
 
     static let restaurant = PlaceCategory(id: "cat-food", name: "맛집", symbol: "fork.knife", colorHex: 0xF08A6E)
     static let cafe = PlaceCategory(id: "cat-cafe", name: "카페", symbol: "cup.and.saucer.fill", colorHex: 0xB08663)

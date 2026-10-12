@@ -131,7 +131,7 @@ final class LocalCoupleRepository: CoupleRepository {
             inviteCode: code,
             members: [owner],
             startDate: startDate,
-            theme: .peach,
+            theme: .default,
             cat: CatState()
         )
 

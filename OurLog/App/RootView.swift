@@ -25,7 +25,9 @@ struct RootView: View {
         }
         .environment(app)
         .environment(\.palette, app.palette)
-        .tint(app.palette.primary)
+        .tint(app.palette.ink)
+        // SpendLog 처럼 종이 느낌을 지키려고 다크 모드를 따르지 않는다
+        .preferredColorScheme(.light)
         .animation(.easeInOut(duration: 0.3), value: app.phase)
         .overlay(alignment: .top) { ToastView(toast: app.toast) }
         .fullScreenCover(item: Binding(
@@ -71,21 +73,16 @@ private struct EvolutionEvent: Identifiable {
 
 private struct LoadingScreen: View {
     @Environment(\.palette) private var palette
-    @State private var bounce = false
 
     var body: some View {
         ZStack {
             CuteBackground()
-            VStack(spacing: 14) {
-                Text("🐾")
-                    .font(.system(size: 52))
-                    .offset(y: bounce ? -8 : 0)
-                    .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: bounce)
+            VStack(spacing: 10) {
+                CatPortrait(stage: .egg, size: 110)
                 Text("OurLog")
-                    .font(.hand(30, bold: true))
-                    .foregroundStyle(palette.primary)
+                    .font(.hand(36, bold: true))
+                    .foregroundStyle(palette.ink)
             }
-            .onAppear { bounce = true }
         }
     }
 }
@@ -97,19 +94,19 @@ struct MainTabView: View {
 
     var body: some View {
         TabView {
-            Tab("홈", systemImage: "house.fill") {
+            Tab("홈", systemImage: "house") {
                 HomeView()
             }
-            Tab("지도", systemImage: "map.fill") {
+            Tab("지도", systemImage: "map") {
                 PlacesMapView()
             }
             Tab("캘린더", systemImage: "calendar") {
                 SharedCalendarView()
             }
-            Tab("일기", systemImage: "book.closed.fill") {
+            Tab("일기", systemImage: "book.closed") {
                 DiaryListView()
             }
-            Tab("고양이", systemImage: "pawprint.fill") {
+            Tab("고양이", systemImage: "pawprint") {
                 CatRoomView()
             }
         }
@@ -127,7 +124,6 @@ struct ToastView: View {
     var body: some View {
         if let toast {
             HStack(spacing: 8) {
-                Text(toast.emoji)
                 Text(toast.text)
                     .font(.hand(19, bold: true))
                     .foregroundStyle(palette.textPrimary)

@@ -48,7 +48,7 @@ final class AppState {
 
     var couple: Couple? { snapshot?.couple }
     var cat: CatState { couple?.cat ?? CatState() }
-    var theme: AppTheme { couple?.theme ?? .peach }
+    var theme: AppTheme { couple?.theme ?? .default }
     var palette: ThemePalette { theme.palette }
 
     var me: Partner? {

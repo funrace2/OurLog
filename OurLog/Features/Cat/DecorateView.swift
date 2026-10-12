@@ -195,5 +195,5 @@ private struct DecorTile: View {
 #Preview {
     DecorateView()
         .environment(AppEnvironment.makeAppState())
-        .environment(\.palette, AppTheme.peach.palette)
+        .environment(\.palette, AppTheme.default.palette)
 }
