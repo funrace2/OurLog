@@ -27,7 +27,10 @@ final class AppState {
 
     private(set) var phase: Phase = .loading
     private(set) var user: AuthUser?
-    private(set) var snapshot: CoupleSnapshot?
+    private(set) var snapshot: CoupleSnapshot? {
+        // 커플 데이터가 바뀔 때마다 위젯용 요약을 갱신한다 (내용이 같으면 아무것도 안 한다)
+        didSet { publishWidget() }
+    }
 
     /// 화면 위에 잠깐 떠오르는 알림 (애정도 획득, 진화 등)
     var toast: Toast?

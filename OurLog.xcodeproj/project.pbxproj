@@ -7,26 +7,87 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		58247ECB30820D96006BEF10 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 58247ECA30820D96006BEF10 /* WidgetKit.framework */; };
+		58247ECD30820D96006BEF10 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 58247ECC30820D96006BEF10 /* SwiftUI.framework */; };
 		A1F0000000000000000000C1 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = A1F0000000000000000000B1 /* FirebaseAuth */; };
 		A1F0000000000000000000C2 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = A1F0000000000000000000B2 /* FirebaseFirestore */; };
 		A1F0000000000000000000C3 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = A1F0000000000000000000B3 /* FirebaseStorage */; };
 		A1F0000000000000000000C4 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = A1F0000000000000000000B4 /* GoogleSignIn */; };
 		A1F0000000000000000000C5 /* NMapsMap in Frameworks */ = {isa = PBXBuildFile; productRef = A1F0000000000000000000B5 /* NMapsMap */; };
+		A1F0000000000000000000E1 /* OurLogWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 58247EC830820D96006BEF10 /* OurLogWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		A1F0000000000000000000E3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 589FEE963061656800F658D7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 58247EC730820D96006BEF10;
+			remoteInfo = OurLogWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A1F0000000000000000000E2 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A1F0000000000000000000E1 /* OurLogWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		58247EC830820D96006BEF10 /* OurLogWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OurLogWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		58247ECA30820D96006BEF10 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		58247ECC30820D96006BEF10 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		58247EDB30820E39006BEF10 /* OurLogWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OurLogWidgetExtension.entitlements; sourceTree = "<group>"; };
 		589FEE9E3061656800F658D7 /* OurLog.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OurLog.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		58247ED630820D97006BEF10 /* Exceptions for "OurLogWidget" folder in "OurLogWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 58247EC730820D96006BEF10 /* OurLogWidgetExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		58247ECE30820D96006BEF10 /* OurLogWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				58247ED630820D97006BEF10 /* Exceptions for "OurLogWidget" folder in "OurLogWidgetExtension" target */,
+			);
+			path = OurLogWidget;
+			sourceTree = "<group>";
+		};
 		589FEEA03061656800F658D7 /* OurLog */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = OurLog;
 			sourceTree = "<group>";
 		};
+		A1F0000000000000000000D1 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		58247EC530820D96006BEF10 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+				58247ECD30820D96006BEF10 /* SwiftUI.framework in Frameworks */,
+				58247ECB30820D96006BEF10 /* WidgetKit.framework in Frameworks */,
+			);
+		};
 		589FEE9B3061656800F658D7 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
@@ -40,10 +101,23 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		58247EC930820D96006BEF10 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				58247ECA30820D96006BEF10 /* WidgetKit.framework */,
+				58247ECC30820D96006BEF10 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		589FEE953061656800F658D7 = {
 			isa = PBXGroup;
 			children = (
+				58247EDB30820E39006BEF10 /* OurLogWidgetExtension.entitlements */,
 				589FEEA03061656800F658D7 /* OurLog */,
+				A1F0000000000000000000D1 /* Shared */,
+				58247ECE30820D96006BEF10 /* OurLogWidget */,
+				58247EC930820D96006BEF10 /* Frameworks */,
 				589FEE9F3061656800F658D7 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -52,6 +126,7 @@
 			isa = PBXGroup;
 			children = (
 				589FEE9E3061656800F658D7 /* OurLog.app */,
+				58247EC830820D96006BEF10 /* OurLogWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -59,6 +134,25 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		58247EC730820D96006BEF10 /* OurLogWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 58247ED730820D97006BEF10 /* Build configuration list for PBXNativeTarget "OurLogWidgetExtension" */;
+			buildPhases = (
+				58247EC430820D96006BEF10 /* Sources */,
+				58247EC530820D96006BEF10 /* Frameworks */,
+				58247EC630820D96006BEF10 /* Resources */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				58247ECE30820D96006BEF10 /* OurLogWidget */,
+				A1F0000000000000000000D1 /* Shared */,
+			);
+			name = OurLogWidgetExtension;
+			productName = OurLogWidgetExtension;
+			productReference = 58247EC830820D96006BEF10 /* OurLogWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		589FEE9D3061656800F658D7 /* OurLog */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 589FEEAB3061656900F658D7 /* Build configuration list for PBXNativeTarget "OurLog" */;
@@ -66,11 +160,16 @@
 				589FEE9A3061656800F658D7 /* Sources */,
 				589FEE9B3061656800F658D7 /* Frameworks */,
 				589FEE9C3061656800F658D7 /* Resources */,
+				A1F0000000000000000000E2 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
+			dependencies = (
+				A1F0000000000000000000E4 /* PBXTargetDependency */,
+			);
 			fileSystemSynchronizedGroups = (
 				589FEEA03061656800F658D7 /* OurLog */,
+				A1F0000000000000000000D1 /* Shared */,
 			);
 			name = OurLog;
 			packageProductDependencies = (
@@ -94,6 +193,9 @@
 				LastSwiftUpdateCheck = 2700;
 				LastUpgradeCheck = 2700;
 				TargetAttributes = {
+					58247EC730820D96006BEF10 = {
+						CreatedOnToolsVersion = 27.0;
+					};
 					589FEE9D3061656800F658D7 = {
 						CreatedOnToolsVersion = 27.0;
 					};
@@ -119,11 +221,17 @@
 			projectRoot = "";
 			targets = (
 				589FEE9D3061656800F658D7 /* OurLog */,
+				58247EC730820D96006BEF10 /* OurLogWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		58247EC630820D96006BEF10 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
 		589FEE9C3061656800F658D7 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
@@ -132,6 +240,11 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		58247EC430820D96006BEF10 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 		589FEE9A3061656800F658D7 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
@@ -139,7 +252,91 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		A1F0000000000000000000E4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 58247EC730820D96006BEF10 /* OurLogWidgetExtension */;
+			targetProxy = A1F0000000000000000000E3 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		58247ED830820D97006BEF10 /* Debug configuration for PBXNativeTarget "OurLogWidgetExtension" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = OurLogWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9LD5CD2WBS;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = OurLogWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = OurLog;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = gaeuni.OurLog.OurLogWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+			};
+			name = Debug;
+		};
+		58247ED930820D97006BEF10 /* Release configuration for PBXNativeTarget "OurLogWidgetExtension" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = OurLogWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9LD5CD2WBS;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = OurLogWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = OurLog;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = gaeuni.OurLog.OurLogWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+			};
+			name = Release;
+		};
 		589FEEA93061656900F658D7 /* Debug configuration for PBXProject "OurLog" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -266,6 +463,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = OurLog/OurLog.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9LD5CD2WBS;
@@ -285,6 +483,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = gaeuni.OurLog;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -304,6 +503,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = OurLog/OurLog.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9LD5CD2WBS;
@@ -323,6 +523,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = gaeuni.OurLog;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -340,6 +541,14 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		58247ED730820D97006BEF10 /* Build configuration list for PBXNativeTarget "OurLogWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				58247ED830820D97006BEF10 /* Debug configuration for PBXNativeTarget "OurLogWidgetExtension" */,
+				58247ED930820D97006BEF10 /* Release configuration for PBXNativeTarget "OurLogWidgetExtension" */,
+			);
+			defaultConfigurationName = Release;
+		};
 		589FEE993061656800F658D7 /* Build configuration list for PBXProject "OurLog" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
