@@ -59,7 +59,7 @@ extension Couple {
     }
 }
 
-extension Calendar {
+nonisolated extension Calendar {
     /// 디데이 계산 전용 캘린더. 시간대에 따라 하루가 밀리지 않도록 현재 시간대를 고정해 쓴다.
     static let dday: Calendar = {
         var cal = Calendar(identifier: .gregorian)

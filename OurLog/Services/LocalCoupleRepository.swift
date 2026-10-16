@@ -86,7 +86,7 @@ final class LocalCoupleRepository: CoupleRepository {
             }
 
             continuation.onTermination = { [weak self] _ in
-                Task { @MainActor in
+                Task { @MainActor [weak self] in
                     self?.continuations[coupleID]?.removeValue(forKey: token)
                 }
             }
@@ -104,21 +104,13 @@ final class LocalCoupleRepository: CoupleRepository {
 
     func upsert<T: CoupleDocument>(_ item: T, coupleID: String) async throws {
         guard db.snapshots[coupleID] != nil else { throw RepositoryError.coupleNotFound }
-        mutateCollection(T.self, in: coupleID) { list in
-            if let index = list.firstIndex(where: { $0.id == item.id }) {
-                list[index] = item
-            } else {
-                list.append(item)
-            }
-        }
+        db.snapshots[coupleID]?.upsert(item)
         commit(coupleID)
     }
 
     func delete<T: CoupleDocument>(_ type: T.Type, id: String, coupleID: String) async throws {
         guard db.snapshots[coupleID] != nil else { throw RepositoryError.coupleNotFound }
-        mutateCollection(type, in: coupleID) { list in
-            list.removeAll { $0.id == id }
-        }
+        db.snapshots[coupleID]?.remove(type, id: id)
         commit(coupleID)
     }
 
@@ -162,45 +154,5 @@ final class LocalCoupleRepository: CoupleRepository {
 
     func coupleID(forUser userID: String) async throws -> String? {
         db.membership[userID]
-    }
-
-    // MARK: 컬렉션 접근
-
-    /// 문서 타입에 맞는 배열을 찾아 수정한다.
-    /// Firestore 로 옮기면 이 분기 자체가 `collection(T.collection)` 한 줄로 사라진다.
-    private func mutateCollection<T: CoupleDocument>(
-        _ type: T.Type,
-        in coupleID: String,
-        _ body: (inout [T]) -> Void
-    ) {
-        guard var snapshot = db.snapshots[coupleID] else { return }
-
-        switch type {
-        case is Anniversary.Type:
-            apply(&snapshot.anniversaries, body)
-        case is SavedPlace.Type:
-            apply(&snapshot.places, body)
-        case is PlaceCategory.Type:
-            apply(&snapshot.categories, body)
-        case is CalendarEvent.Type:
-            apply(&snapshot.events, body)
-        case is DiaryEntry.Type:
-            apply(&snapshot.diaries, body)
-        default:
-            assertionFailure("등록되지 않은 컬렉션: \(T.collection)")
-        }
-
-        db.snapshots[coupleID] = snapshot
-    }
-
-    /// 구체 타입 배열을 제네릭 클로저에 연결해 주는 다리.
-    private func apply<Stored, T: CoupleDocument>(
-        _ storage: inout [Stored],
-        _ body: (inout [T]) -> Void
-    ) {
-        guard var typed = storage as? [T] else { return }
-        body(&typed)
-        guard let back = typed as? [Stored] else { return }
-        storage = back
     }
 }

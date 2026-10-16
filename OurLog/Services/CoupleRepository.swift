@@ -19,23 +19,23 @@ nonisolated protocol CoupleDocument: Identifiable, Codable, Sendable where ID ==
     static var collection: String { get }
 }
 
-extension Anniversary: CoupleDocument {
+nonisolated extension Anniversary: CoupleDocument {
     static var collection: String { "anniversaries" }
 }
 
-extension SavedPlace: CoupleDocument {
+nonisolated extension SavedPlace: CoupleDocument {
     static var collection: String { "places" }
 }
 
-extension PlaceCategory: CoupleDocument {
+nonisolated extension PlaceCategory: CoupleDocument {
     static var collection: String { "categories" }
 }
 
-extension CalendarEvent: CoupleDocument {
+nonisolated extension CalendarEvent: CoupleDocument {
     static var collection: String { "events" }
 }
 
-extension DiaryEntry: CoupleDocument {
+nonisolated extension DiaryEntry: CoupleDocument {
     static var collection: String { "diaries" }
 }
 
@@ -49,6 +49,48 @@ nonisolated struct CoupleSnapshot: Codable, Sendable {
     var categories: [PlaceCategory] = PlaceCategory.defaults
     var events: [CalendarEvent] = []
     var diaries: [DiaryEntry] = []
+}
+
+extension CoupleSnapshot {
+    /// 같은 id 가 있으면 바꾸고, 없으면 추가한다.
+    mutating func upsert<T: CoupleDocument>(_ item: T) {
+        mutate(T.self) { list in
+            if let index = list.firstIndex(where: { $0.id == item.id }) {
+                list[index] = item
+            } else {
+                list.append(item)
+            }
+        }
+    }
+
+    mutating func remove<T: CoupleDocument>(_ type: T.Type, id: String) {
+        mutate(type) { list in list.removeAll { $0.id == id } }
+    }
+
+    /// 문서 타입에 맞는 배열을 통째로 바꾼다 (Firestore 리스너가 컬렉션 단위로 받아올 때).
+    mutating func replace<T: CoupleDocument>(_ items: [T]) {
+        mutate(T.self) { list in list = items }
+    }
+
+    /// 문서 타입에 맞는 배열을 찾아 수정한다.
+    private mutating func mutate<T: CoupleDocument>(_ type: T.Type, _ body: (inout [T]) -> Void) {
+        switch type {
+        case is Anniversary.Type: Self.apply(&anniversaries, body)
+        case is SavedPlace.Type: Self.apply(&places, body)
+        case is PlaceCategory.Type: Self.apply(&categories, body)
+        case is CalendarEvent.Type: Self.apply(&events, body)
+        case is DiaryEntry.Type: Self.apply(&diaries, body)
+        default: assertionFailure("등록되지 않은 컬렉션: \(T.collection)")
+        }
+    }
+
+    /// 구체 타입 배열을 제네릭 클로저에 연결해 주는 다리.
+    private static func apply<Stored, T: CoupleDocument>(_ storage: inout [Stored], _ body: (inout [T]) -> Void) {
+        guard var typed = storage as? [T] else { return }
+        body(&typed)
+        guard let back = typed as? [Stored] else { return }
+        storage = back
+    }
 }
 
 // MARK: - 저장소

@@ -63,11 +63,9 @@ struct SignInView: View {
                 } label: {
                     HStack(spacing: 8) {
                         if isWorking {
-                            ProgressView().tint(.white)
-                        } else {
-                            Image(systemName: "apple.logo")
+                            ProgressView().tint(palette.paper)
                         }
-                        Text(AppEnvironment.useAppleSignIn ? "Apple로 시작하기" : "시작하기")
+                        Text(signInTitle)
                     }
                 }
                 .buttonStyle(.soft)
@@ -95,6 +93,13 @@ private struct Highlight: Identifiable {
         .init(symbol: "book.closed.fill", text: "사진과 함께 쓰는 데이트 일기"),
         .init(symbol: "pawprint.fill", text: "둘이 같이 키우는 고양이"),
     ]
+}
+
+private extension SignInView {
+    var signInTitle: String {
+        if AppEnvironment.useAppleSignIn { return "Apple로 시작하기" }
+        return AppEnvironment.usesFirebase ? "Google로 시작하기" : "시작하기"
+    }
 }
 
 #Preview {

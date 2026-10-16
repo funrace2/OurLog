@@ -107,3 +107,13 @@ fastlane/test_output
 iOSInjectionProject/
 # 스프라이트 생성 스크립트
 __pycache__/
+
+# Firebase 설정 파일 (SETUP.md 참고 — 없으면 앱이 로컬 모드로 돈다)
+OurLog/GoogleService-Info.plist
+
+# 코드 외 파일 (로컬에만 둔다)
+SETUP.md
+docs/
+scripts/
+firestore.rules
+storage.rules

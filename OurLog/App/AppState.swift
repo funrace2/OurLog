@@ -127,6 +127,7 @@ final class AppState {
         streamTask?.cancel()
         streamTask = nil
         auth.signOut()
+        PhotoStore.shared.remote = nil
         user = nil
         snapshot = nil
         phase = .signedOut
@@ -139,13 +140,19 @@ final class AppState {
                 return
             }
             snapshot = try await repository.loadSnapshot(coupleID: coupleID)
-            observe(coupleID: coupleID)
+            connect(coupleID: coupleID)
             phase = .ready
             await checkInIfNeeded()
         } catch {
             errorMessage = error.localizedDescription
             phase = .needsCouple
         }
+    }
+
+    /// 커플이 정해지면 실시간 구독과 사진 저장소를 그 커플에 연결한다.
+    private func connect(coupleID: String) {
+        PhotoStore.shared.remote = AppEnvironment.makePhotoRemote(coupleID: coupleID)
+        observe(coupleID: coupleID)
     }
 
     private func observe(coupleID: String) {
@@ -166,7 +173,7 @@ final class AppState {
             let owner = Partner(id: user.id, displayName: myName)
             let couple = try await repository.createCouple(owner: owner, startDate: startDate)
             snapshot = try await repository.loadSnapshot(coupleID: couple.id)
-            observe(coupleID: couple.id)
+            connect(coupleID: couple.id)
             phase = .ready
         } catch {
             errorMessage = error.localizedDescription
@@ -179,7 +186,7 @@ final class AppState {
             let partner = Partner(id: user.id, displayName: myName)
             let couple = try await repository.joinCouple(inviteCode: code, partner: partner)
             snapshot = try await repository.loadSnapshot(coupleID: couple.id)
-            observe(coupleID: couple.id)
+            connect(coupleID: couple.id)
             phase = .ready
         } catch {
             errorMessage = error.localizedDescription
@@ -211,9 +218,10 @@ final class AppState {
     }
 
     private func save(_ couple: Couple) async {
+        // 화면에는 먼저 반영하고, 저장 결과(상대방 변경 포함)는 실시간 구독으로 다시 들어온다.
+        snapshot?.couple = couple
         do {
             try await repository.saveCouple(couple)
-            snapshot?.couple = couple
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -352,11 +360,14 @@ final class AppState {
 
     // MARK: 공통 저장
 
+    // 화면에 먼저 반영하고 저장소에 보낸다. 다시 읽어오지 않는다 —
+    // Firestore 에서는 매번 서버를 왕복하게 되고, 최종 상태는 실시간 구독이 맞춰 준다.
+
     private func upsert<T: CoupleDocument>(_ item: T) async {
         guard let coupleID = couple?.id else { return }
+        snapshot?.upsert(item)
         do {
             try await repository.upsert(item, coupleID: coupleID)
-            snapshot = try await repository.loadSnapshot(coupleID: coupleID)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -364,9 +375,9 @@ final class AppState {
 
     private func delete<T: CoupleDocument>(_ type: T.Type, id: String) async {
         guard let coupleID = couple?.id else { return }
+        snapshot?.remove(type, id: id)
         do {
             try await repository.delete(type, id: id, coupleID: coupleID)
-            snapshot = try await repository.loadSnapshot(coupleID: coupleID)
         } catch {
             errorMessage = error.localizedDescription
         }

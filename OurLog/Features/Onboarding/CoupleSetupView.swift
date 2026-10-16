@@ -87,6 +87,11 @@ struct CoupleSetupView: View {
                 .padding(20)
             }
         }
+        .onAppear {
+            if myName.isEmpty, let name = app.user?.displayName {
+                myName = name
+            }
+        }
     }
 
     private var header: some View {
