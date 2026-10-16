@@ -50,7 +50,8 @@ final class MapKitPlaceSearchService: PlaceSearchService {
 
 // MARK: - 네이버
 
-/// 네이버 지역검색 API (openapi.naver.com). 하루 25,000회 무료, 한 번에 최대 5건.
+/// 네이버 지역검색 — NAVER API HUB (네이버 클라우드 플랫폼). 하루 25,000회, 한 번에 최대 5건.
+/// (예전 개발자센터 openapi.naver.com 은 2026-07-31 부터 신규 신청이 막혔고 2027-06-30 에 종료된다)
 @MainActor
 final class NaverPlaceSearchService: PlaceSearchService {
     private struct Response: Decodable {
@@ -73,15 +74,16 @@ final class NaverPlaceSearchService: PlaceSearchService {
               let secret = NaverKeys.searchClientSecret
         else { return [] }
 
-        var components = URLComponents(string: "https://openapi.naver.com/v1/search/local.json")!
+        var components = URLComponents(string: "https://naverapihub.apigw.ntruss.com/search/v1/local")!
         components.queryItems = [
             URLQueryItem(name: "query", value: trimmed),
             URLQueryItem(name: "display", value: "5"),
             URLQueryItem(name: "sort", value: "random"),   // 정확도순
+            URLQueryItem(name: "format", value: "json"),
         ]
         var request = URLRequest(url: components.url!)
-        request.setValue(clientID, forHTTPHeaderField: "X-Naver-Client-Id")
-        request.setValue(secret, forHTTPHeaderField: "X-Naver-Client-Secret")
+        request.setValue(clientID, forHTTPHeaderField: "X-NCP-APIGW-API-KEY-ID")
+        request.setValue(secret, forHTTPHeaderField: "X-NCP-APIGW-API-KEY")
 
         let (data, response) = try await URLSession.shared.data(for: request)
         if let http = response as? HTTPURLResponse, http.statusCode != 200 {
@@ -105,12 +107,15 @@ final class NaverPlaceSearchService: PlaceSearchService {
         }
     }
 
-    /// 지금 API 는 WGS84 위경도에 10^7 을 곱한 정수를 준다 (예: 1270369447 → 127.0369447).
-    /// 문서 예시에는 예전 좌표계(KATEC) 값이 남아 있어서, 그런 값이 오면 버린다.
+    /// mapx = 경도, mapy = 위도 (WGS84).
+    /// 위경도에 10^7 을 곱한 정수(1270369447)로 오기도 하고 소수(127.0369447)로 오기도 해서 둘 다 받는다.
+    /// 한반도 범위를 벗어나는 값(예전 KATEC 좌표 등)은 버린다.
     private static func coordinate(mapx: String, mapy: String) -> CLLocationCoordinate2D? {
-        guard let x = Double(mapx), let y = Double(mapy), x > 1e8, y > 1e7 else { return nil }
-        let coordinate = CLLocationCoordinate2D(latitude: y / 1e7, longitude: x / 1e7)
-        return CLLocationCoordinate2DIsValid(coordinate) ? coordinate : nil
+        guard var lng = Double(mapx), var lat = Double(mapy) else { return nil }
+        if lng > 1_000 { lng /= 1e7 }
+        if lat > 1_000 { lat /= 1e7 }
+        guard (120...135).contains(lng), (30...45).contains(lat) else { return nil }
+        return CLLocationCoordinate2D(latitude: lat, longitude: lng)
     }
 
     /// 검색어가 <b>태그</b> 로 감싸져 오고, &amp; 같은 엔티티도 섞여 온다.
