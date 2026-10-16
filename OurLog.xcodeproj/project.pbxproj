@@ -11,6 +11,7 @@
 		A1F0000000000000000000C2 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = A1F0000000000000000000B2 /* FirebaseFirestore */; };
 		A1F0000000000000000000C3 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = A1F0000000000000000000B3 /* FirebaseStorage */; };
 		A1F0000000000000000000C4 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = A1F0000000000000000000B4 /* GoogleSignIn */; };
+		A1F0000000000000000000C5 /* NMapsMap in Frameworks */ = {isa = PBXBuildFile; productRef = A1F0000000000000000000B5 /* NMapsMap */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,6 +34,7 @@
 				A1F0000000000000000000C2 /* FirebaseFirestore in Frameworks */,
 				A1F0000000000000000000C3 /* FirebaseStorage in Frameworks */,
 				A1F0000000000000000000C4 /* GoogleSignIn in Frameworks */,
+				A1F0000000000000000000C5 /* NMapsMap in Frameworks */,
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -76,6 +78,7 @@
 				A1F0000000000000000000B2 /* FirebaseFirestore */,
 				A1F0000000000000000000B3 /* FirebaseStorage */,
 				A1F0000000000000000000B4 /* GoogleSignIn */,
+				A1F0000000000000000000B5 /* NMapsMap */,
 			);
 			productName = OurLog;
 			productReference = 589FEE9E3061656800F658D7 /* OurLog.app */;
@@ -108,6 +111,7 @@
 			packageReferences = (
 				A1F0000000000000000000A1 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				A1F0000000000000000000A2 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				A1F0000000000000000000A3 /* XCRemoteSwiftPackageReference "SPM-NMapsMap" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 589FEE9F3061656800F658D7 /* Products */;
@@ -371,6 +375,14 @@
 				minimumVersion = 9.0.0;
 			};
 		};
+		A1F0000000000000000000A3 /* XCRemoteSwiftPackageReference "SPM-NMapsMap" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/navermaps/SPM-NMapsMap";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.24.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -393,6 +405,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = A1F0000000000000000000A2 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
 			productName = GoogleSignIn;
+		};
+		A1F0000000000000000000B5 /* NMapsMap */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A1F0000000000000000000A3 /* XCRemoteSwiftPackageReference "SPM-NMapsMap" */;
+			productName = NMapsMap;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
