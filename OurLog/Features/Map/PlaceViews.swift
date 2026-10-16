@@ -151,18 +151,11 @@ struct PlaceDetailView: View {
 
                 ScrollView {
                     VStack(spacing: 16) {
-                        Map(initialPosition: .region(MKCoordinateRegion(
-                            center: place.coordinate,
-                            latitudinalMeters: 600,
-                            longitudinalMeters: 600
-                        ))) {
-                            Annotation(place.name, coordinate: place.coordinate) {
-                                PlacePin(category: app.category(id: place.categoryID), isVisited: place.isVisited)
-                            }
-                        }
-                        .frame(height: 180)
-                        .clipShape(.rect(cornerRadius: 22))
-                        .allowsHitTesting(false)
+                        placePreviewMap
+                            .frame(height: 180)
+                            .clipShape(.rect(cornerRadius: 6))
+                            .sketchBox(seed: sketchSeed(place.id), fill: .clear)
+                            .allowsHitTesting(false)
 
                         CuteCard {
                             VStack(alignment: .leading, spacing: 8) {
@@ -238,10 +231,42 @@ struct PlaceDetailView: View {
         }
     }
 
+    @ViewBuilder
+    private var placePreviewMap: some View {
+        if AppEnvironment.useNaverMaps {
+            NaverPlacesMap(
+                places: [place],
+                categoryFor: { app.category(id: $0) },
+                focus: MapFocus(coordinate: place.coordinate, zoom: 16),
+                interactive: false
+            )
+        } else {
+            Map(initialPosition: .region(MKCoordinateRegion(
+                center: place.coordinate,
+                latitudinalMeters: 600,
+                longitudinalMeters: 600
+            ))) {
+                Annotation(place.name, coordinate: place.coordinate) {
+                    PlacePin(category: app.category(id: place.categoryID), isVisited: place.isVisited)
+                }
+            }
+        }
+    }
+
+    /// 네이버 지도 앱이 있으면 거기서, 없으면 Apple 지도에서 연다.
     private func openInMaps() {
-        let item = MKMapItem(placemark: MKPlacemark(coordinate: place.coordinate))
-        item.name = place.name
-        item.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving])
+        let openApple = {
+            let item = MKMapItem(placemark: MKPlacemark(coordinate: place.coordinate))
+            item.name = place.name
+            item.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving])
+        }
+        guard let url = NaverMapLink.placeURL(name: place.name, coordinate: place.coordinate) else {
+            openApple()
+            return
+        }
+        UIApplication.shared.open(url) { opened in
+            if !opened { openApple() }
+        }
     }
 }
 

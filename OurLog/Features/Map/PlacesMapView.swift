@@ -4,9 +4,7 @@
 //
 //  지도에서 장소를 찾고, 카테고리를 나눠 저장한다. 저장 목록은 둘이 함께 본다.
 //
-//  지도 렌더링은 지금 MapKit 을 쓴다. 네이버 지도 SDK 로 바꿀 때는
-//  이 파일의 Map { } 부분만 NMFMapView 래퍼로 교체하면 되고,
-//  검색은 PlaceSearchService 구현만 갈아끼우면 된다.
+//  NaverKeys.plist 에 지도 키가 있으면 네이버 지도, 없으면 MapKit 으로 그린다.
 //
 
 import SwiftUI
@@ -29,6 +27,8 @@ struct PlacesMapView: View {
     @State private var selectedPlace: SavedPlace?
 
     @State private var mapCenter = CLLocationCoordinate2D.seoulCenter
+    /// 네이버 지도를 옮겨 달라는 요청 (검색 결과로 이동할 때)
+    @State private var naverFocus: MapFocus?
     private let searchService = AppEnvironment.makePlaceSearchService()
 
     private var visiblePlaces: [SavedPlace] {
@@ -76,7 +76,25 @@ struct PlacesMapView: View {
 
     // MARK: 지도
 
+    @ViewBuilder
     private var map: some View {
+        if AppEnvironment.useNaverMaps {
+            NaverPlacesMap(
+                places: visiblePlaces,
+                searchResults: searchResults,
+                categoryFor: { app.category(id: $0) },
+                focus: naverFocus,
+                onSelectPlace: { selectedPlace = $0 },
+                onSelectResult: { placeToSave = $0 },
+                onCenterChange: { mapCenter = $0 }
+            )
+            .ignoresSafeArea(edges: .bottom)
+        } else {
+            appleMap
+        }
+    }
+
+    private var appleMap: some View {
         MapReader { _ in
             Map(position: $camera) {
                 ForEach(visiblePlaces) { place in
@@ -149,6 +167,7 @@ struct PlacesMapView: View {
         do {
             searchResults = try await searchService.search(query: query, near: mapCenter)
             if let first = searchResults.first {
+                naverFocus = MapFocus(coordinate: first.coordinate)
                 withAnimation {
                     camera = .region(MKCoordinateRegion(
                         center: first.coordinate,

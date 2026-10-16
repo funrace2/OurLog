@@ -16,13 +16,13 @@ enum AppEnvironment {
     /// 유료 개발자 계정으로 "Sign in with Apple" capability 를 켠 뒤 true 로 바꾼다.
     static let useAppleSignIn = false
 
-    /// 일기 사진을 Firebase Storage 로 공유할지.
-    /// 새 Firebase 프로젝트는 Storage 에 Blaze 요금제가 필요해서, 요금제를 올린 뒤 true 로 바꾼다.
-    /// false 면 사진은 찍은 사람 기기에만 남는다 (일기 글은 그래도 공유된다).
+    /// 일기 사진을 어디에 공유할지.
+    /// false: Firestore 문서에 줄인 사진을 직접 넣는다 (무료 요금제로 동작, 긴 변 1000px)
+    /// true : Firebase Storage 에 원본에 가깝게 올린다 (Blaze 요금제 필요)
     static let useFirebaseStorage = false
 
-    /// 네이버 지도/검색 키가 준비되면 true 로 바꾼다. (자세한 절차는 SETUP.md)
-    static let useNaverMaps = false
+    /// NaverKeys.plist 에 키가 있으면 네이버 지도·검색을, 없으면 MapKit 을 쓴다.
+    static var useNaverMaps: Bool { NaverKeys.hasMapKey }
 
     static var usesFirebase: Bool { FirebaseSetup.isConfigured }
 
@@ -36,12 +36,12 @@ enum AppEnvironment {
     }
 
     static func makePhotoRemote(coupleID: String) -> PhotoRemote? {
-        guard usesFirebase, useFirebaseStorage else { return nil }
-        return FirebasePhotoRemote(coupleID: coupleID)
+        guard usesFirebase else { return nil }
+        return useFirebaseStorage ? FirebasePhotoRemote(coupleID: coupleID) : FirestorePhotoRemote(coupleID: coupleID)
     }
 
     static func makePlaceSearchService() -> PlaceSearchService {
-        useNaverMaps ? NaverPlaceSearchService() : MapKitPlaceSearchService()
+        NaverKeys.hasSearchKey ? NaverPlaceSearchService() : MapKitPlaceSearchService()
     }
 
     static func makeAppState() -> AppState {
