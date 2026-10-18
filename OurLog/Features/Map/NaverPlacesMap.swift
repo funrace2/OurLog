@@ -27,6 +27,8 @@ struct NaverPlacesMap: UIViewRepresentable {
     var focus: MapFocus?
     /// false 면 손으로 움직일 수 없는 미리보기 지도 (상세 화면)
     var interactive = true
+    /// 내 위치(파란 점)와 내 위치 버튼을 보여줄지
+    var showsMyLocation = false
     var onSelectPlace: (SavedPlace) -> Void = { _ in }
     var onSelectResult: (PlaceSearchResult) -> Void = { _ in }
     var onCenterChange: (CLLocationCoordinate2D) -> Void = { _ in }
@@ -38,7 +40,7 @@ struct NaverPlacesMap: UIViewRepresentable {
     func makeUIView(context: Context) -> NMFNaverMapView {
         let naverView = NMFNaverMapView(frame: .zero)
         naverView.showZoomControls = false
-        naverView.showLocationButton = false
+        naverView.showLocationButton = showsMyLocation
         naverView.showScaleBar = interactive
         naverView.showCompass = interactive
 
@@ -53,6 +55,11 @@ struct NaverPlacesMap: UIViewRepresentable {
         map.moveCamera(NMFCameraUpdate(scrollTo: NMGLatLng(lat: start.latitude, lng: start.longitude),
                                        zoomTo: focus?.zoom ?? 12))
         context.coordinator.lastFocusID = focus?.id
+
+        if showsMyLocation {
+            // 따로 보여줄 곳이 없으면 내 위치로 가서 따라간다. 손으로 지도를 움직이면 SDK 가 추적을 풀어 준다.
+            context.coordinator.startLocation(on: map, followUser: focus == nil)
+        }
         return naverView
     }
 
@@ -76,8 +83,38 @@ struct NaverPlacesMap: UIViewRepresentable {
 
     // MARK: - Coordinator
 
-    final class Coordinator: NSObject, NMFMapViewCameraDelegate {
+    final class Coordinator: NSObject, NMFMapViewCameraDelegate, CLLocationManagerDelegate {
         var parent: NaverPlacesMap?
+        private let locationManager = CLLocationManager()
+        private weak var locationMap: NMFMapView?
+        private var followUser = false
+
+        /// 권한이 없으면 먼저 물어보고, 허락되면 위치 표시를 켠다.
+        func startLocation(on map: NMFMapView, followUser: Bool) {
+            locationMap = map
+            self.followUser = followUser
+            locationManager.delegate = self
+            switch locationManager.authorizationStatus {
+            case .notDetermined:
+                locationManager.requestWhenInUseAuthorization()
+            case .authorizedWhenInUse, .authorizedAlways:
+                map.positionMode = followUser ? .direction : .normal
+            default:
+                break   // 거절한 경우엔 지도만 보여준다
+            }
+        }
+
+        nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+            MainActor.assumeIsolated {
+                guard let map = locationMap else { return }
+                switch manager.authorizationStatus {
+                case .authorizedWhenInUse, .authorizedAlways:
+                    map.positionMode = followUser ? .direction : .normal
+                default:
+                    break
+                }
+            }
+        }
         var lastFocusID: UUID?
         private var markers: [NMFMarker] = []
         /// 같은 모양 마커 이미지를 매번 다시 굽지 않도록

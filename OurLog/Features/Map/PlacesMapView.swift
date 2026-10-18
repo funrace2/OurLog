@@ -29,6 +29,8 @@ struct PlacesMapView: View {
     @State private var mapCenter = CLLocationCoordinate2D.seoulCenter
     /// 네이버 지도를 옮겨 달라는 요청 (검색 결과로 이동할 때)
     @State private var naverFocus: MapFocus?
+    /// MapKit 지도에서 위치 권한을 묻는 데 쓴다 (네이버 지도는 래퍼 안에서 따로 묻는다)
+    @State private var locationManager = CLLocationManager()
     private let searchService = AppEnvironment.makePlaceSearchService()
 
     private var visiblePlaces: [SavedPlace] {
@@ -84,6 +86,7 @@ struct PlacesMapView: View {
                 searchResults: searchResults,
                 categoryFor: { app.category(id: $0) },
                 focus: naverFocus,
+                showsMyLocation: true,
                 onSelectPlace: { selectedPlace = $0 },
                 onSelectResult: { placeToSave = $0 },
                 onCenterChange: { mapCenter = $0 }
@@ -97,6 +100,8 @@ struct PlacesMapView: View {
     private var appleMap: some View {
         MapReader { _ in
             Map(position: $camera) {
+                UserAnnotation()
+
                 ForEach(visiblePlaces) { place in
                     Annotation(place.name, coordinate: place.coordinate) {
                         PlacePin(
@@ -117,11 +122,17 @@ struct PlacesMapView: View {
                 }
             }
             .mapControls {
+                MapUserLocationButton()
                 MapCompass()
                 MapScaleView()
             }
             .onMapCameraChange { context in
                 mapCenter = context.region.center
+            }
+            .onAppear {
+                if locationManager.authorizationStatus == .notDetermined {
+                    locationManager.requestWhenInUseAuthorization()
+                }
             }
             .ignoresSafeArea(edges: .bottom)
         }

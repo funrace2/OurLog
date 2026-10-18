@@ -13,6 +13,8 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>우리 지도에서 내 위치를 보여줄 때 사용해요.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>NanumDS.ttf</string>
