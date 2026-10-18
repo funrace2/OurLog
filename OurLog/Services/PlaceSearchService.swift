@@ -60,6 +60,7 @@ final class NaverPlaceSearchService: PlaceSearchService {
 
     private struct Item: Decodable {
         let title: String
+        let link: String
         let category: String
         let address: String
         let roadAddress: String
@@ -102,7 +103,8 @@ final class NaverPlaceSearchService: PlaceSearchService {
                 // "음식점>카페,디저트" → "카페,디저트"
                 category: item.category.split(separator: ">").last.map(String.init) ?? "",
                 latitude: coordinate.latitude,
-                longitude: coordinate.longitude
+                longitude: coordinate.longitude,
+                link: item.link.hasPrefix("http") ? item.link : nil
             )
         }
     }

@@ -79,7 +79,8 @@ struct SavePlaceView: View {
             longitude: result.longitude,
             categoryID: categoryID,
             memo: memo.trimmingCharacters(in: .whitespacesAndNewlines),
-            createdBy: userID
+            createdBy: userID,
+            link: result.link
         )
         Task { await app.addPlace(place) }
         dismiss()
@@ -143,6 +144,10 @@ struct PlaceDetailView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var showDeleteConfirm = false
+    @State private var info = PlaceInfo()
+    @State private var isLoadingInfo = PlaceInfoService.isAvailable
+    @State private var openedPhoto: PlacePhoto?
+    @State private var webPage: WebPage?
 
     var body: some View {
         NavigationStack {
@@ -151,44 +156,16 @@ struct PlaceDetailView: View {
 
                 ScrollView {
                     VStack(spacing: 16) {
+                        photoStrip
+
                         placePreviewMap
-                            .frame(height: 180)
+                            .frame(height: 150)
                             .clipShape(.rect(cornerRadius: 6))
                             .sketchBox(seed: sketchSeed(place.id), fill: .clear)
                             .allowsHitTesting(false)
 
-                        CuteCard {
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    Text(place.name)
-                                        .font(.hand(27, bold: true))
-                                        .foregroundStyle(palette.textPrimary)
-                                    Spacer()
-                                    if let category = app.category(id: place.categoryID) {
-                                        Chip(text: category.name, systemImage: category.symbol, tint: category.color)
-                                    }
-                                }
-
-                                Text(place.address)
-                                    .font(.hand(18))
-                                    .foregroundStyle(palette.textSecondary)
-
-                                if !place.memo.isEmpty {
-                                    Text(place.memo)
-                                        .font(.hand(19))
-                                        .foregroundStyle(palette.textPrimary)
-                                        .padding(.top, 6)
-                                        .padding(12)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .sketchBox(seed: 312, fill: palette.surfaceAlt, roughness: 1.3, lineWidth: 1.6)
-                                }
-
-                                Text("\(app.couple?.member(id: place.createdBy)?.displayName ?? "누군가") 님이 저장했어요")
-                                    .font(.hand(15))
-                                    .foregroundStyle(palette.textSecondary)
-                                    .padding(.top, 4)
-                            }
-                        }
+                        infoCard
+                        reviewsSection
 
                         Button {
                             Task { await app.toggleVisited(place) }
@@ -201,10 +178,19 @@ struct PlaceDetailView: View {
                         }
                         .buttonStyle(place.isVisited ? .softTinted : .soft)
 
+                        if AppEnvironment.useNaverMaps {
+                            Button {
+                                openNaverPlacePage()
+                            } label: {
+                                Label("네이버 지도에서 자세히 보기", systemImage: "info.circle")
+                            }
+                            .buttonStyle(.softTinted)
+                        }
+
                         Button {
                             openInMaps()
                         } label: {
-                            Label("지도 앱에서 길찾기", systemImage: "arrow.triangle.turn.up.right.circle.fill")
+                            Label("길찾기", systemImage: "arrow.triangle.turn.up.right.circle.fill")
                         }
                         .buttonStyle(.softTinted)
 
@@ -228,6 +214,157 @@ struct PlaceDetailView: View {
                     dismiss()
                 }
             }
+            .sheet(item: $webPage) { page in
+                SafariView(url: page.url).ignoresSafeArea()
+            }
+            .fullScreenCover(item: $openedPhoto) { photo in
+                PhotoViewer(photos: info.photos, selection: photo)
+            }
+            .task {
+                guard PlaceInfoService.isAvailable else { return }
+                info = await PlaceInfoService.shared.info(for: place)
+                isLoadingInfo = false
+            }
+        }
+    }
+
+    // MARK: 사진
+
+    @ViewBuilder
+    private var photoStrip: some View {
+        if isLoadingInfo {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(0..<3, id: \.self) { index in
+                        palette.paperDeep
+                            .frame(width: 130, height: 160)
+                            .sketchBox(seed: UInt64(index) &+ 440, fill: .clear, roughness: 1.2, lineWidth: 1.6)
+                    }
+                }
+                .padding(.horizontal, 2)
+            }
+            .redacted(reason: .placeholder)
+        } else if !info.photos.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(spacing: 10) {
+                        ForEach(Array(info.photos.enumerated()), id: \.element.id) { index, photo in
+                            Button {
+                                openedPhoto = photo
+                            } label: {
+                                RemoteImage(url: photo.url, maxPixel: 600)
+                                    .frame(width: 130, height: 160)
+                                    .clipped()
+                                    .sketchBox(seed: UInt64(index) &+ 440, fill: .clear, roughness: 1.2, lineWidth: 1.6)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, 2)
+                }
+                Text("네이버 검색에서 찾은 사진이라 다른 곳이 섞여 있을 수 있어요")
+                    .font(.hand(14))
+                    .foregroundStyle(palette.textSecondary)
+            }
+        }
+    }
+
+    // MARK: 정보
+
+    private var infoCard: some View {
+        CuteCard {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text(place.name)
+                        .font(.hand(27, bold: true))
+                        .foregroundStyle(palette.textPrimary)
+                    Spacer()
+                    if let category = app.category(id: place.categoryID) {
+                        Chip(text: category.name, systemImage: category.symbol, tint: category.color)
+                    }
+                }
+
+                Text(place.address)
+                    .font(.hand(18))
+                    .foregroundStyle(palette.textSecondary)
+
+                if let link = place.link, let url = URL(string: link) {
+                    Button {
+                        webPage = WebPage(url: url)
+                    } label: {
+                        Label(Self.linkTitle(url), systemImage: "link")
+                            .font(.hand(18, bold: true))
+                            .foregroundStyle(palette.pen)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                if !place.memo.isEmpty {
+                    Text(place.memo)
+                        .font(.hand(19))
+                        .foregroundStyle(palette.textPrimary)
+                        .padding(.top, 6)
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .sketchBox(seed: 312, fill: palette.surfaceAlt, roughness: 1.3, lineWidth: 1.6)
+                }
+
+                Text("\(app.couple?.member(id: place.createdBy)?.displayName ?? "누군가") 님이 저장했어요")
+                    .font(.hand(15))
+                    .foregroundStyle(palette.textSecondary)
+                    .padding(.top, 4)
+            }
+        }
+    }
+
+    /// 인스타그램이면 "인스타그램", 아니면 "홈페이지"
+    private static func linkTitle(_ url: URL) -> String {
+        let host = url.host() ?? ""
+        if host.contains("instagram") { return "인스타그램" }
+        if host.contains("blog.naver") { return "블로그" }
+        return "홈페이지"
+    }
+
+    // MARK: 후기
+
+    @ViewBuilder
+    private var reviewsSection: some View {
+        if !info.posts.isEmpty {
+            VStack(spacing: 10) {
+                SectionHeader(title: "블로그 후기")
+
+                CuteCard(padding: 0) {
+                    VStack(spacing: 0) {
+                        ForEach(Array(info.posts.enumerated()), id: \.element.id) { index, post in
+                            Button {
+                                webPage = WebPage(url: post.url)
+                            } label: {
+                                BlogPostRow(post: post)
+                            }
+                            .buttonStyle(.plain)
+
+                            if index < info.posts.count - 1 {
+                                SketchDivider(seed: UInt64(index) &+ 80)
+                                    .padding(.horizontal, 12)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: 네이버 지도
+
+    private func openNaverPlacePage() {
+        let query = PlaceInfoService.query(for: place)
+        let web = NaverMapLink.searchWebURL(query: query)
+        guard let appURL = NaverMapLink.searchAppURL(query: query) else {
+            if let web { webPage = WebPage(url: web) }
+            return
+        }
+        UIApplication.shared.open(appURL) { opened in
+            if !opened, let web { webPage = WebPage(url: web) }
         }
     }
 
@@ -266,6 +403,69 @@ struct PlaceDetailView: View {
         }
         UIApplication.shared.open(url) { opened in
             if !opened { openApple() }
+        }
+    }
+}
+
+// MARK: - 후기 한 줄
+
+private struct BlogPostRow: View {
+    let post: BlogPost
+    @Environment(\.palette) private var palette
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(post.title)
+                .font(.hand(19, bold: true))
+                .foregroundStyle(palette.textPrimary)
+                .lineLimit(1)
+            Text(post.summary)
+                .font(.hand(16))
+                .foregroundStyle(palette.textSecondary)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+            Text([post.blogger, post.date?.formatted(.dateTime.year().month().day().locale(Locale(identifier: "ko_KR")))]
+                .compactMap { $0 }.joined(separator: " · "))
+                .font(.hand(14))
+                .foregroundStyle(palette.textSecondary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
+        .contentShape(.rect)
+    }
+}
+
+// MARK: - 사진 크게 보기
+
+private struct PhotoViewer: View {
+    let photos: [PlacePhoto]
+    @State var selection: PlacePhoto
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            Color.black.ignoresSafeArea()
+
+            TabView(selection: $selection) {
+                ForEach(photos) { photo in
+                    RemoteImage(url: photo.url, maxPixel: 2000, contentMode: .fit)
+                        .tag(photo)
+                }
+            }
+            .tabViewStyle(.page)
+
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(12)
+                    .background(.black.opacity(0.4), in: .circle)
+            }
+            .padding()
         }
     }
 }

@@ -40,6 +40,8 @@ nonisolated struct SavedPlace: Identifiable, Codable, Hashable, Sendable {
     var isVisited: Bool
     var createdBy: String
     var createdAt: Date
+    /// 가게 홈페이지·인스타그램 등 (네이버 검색 결과에 있을 때만). 예전에 저장한 장소는 nil.
+    var link: String?
 
     var coordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
@@ -55,7 +57,8 @@ nonisolated struct SavedPlace: Identifiable, Codable, Hashable, Sendable {
         memo: String = "",
         isVisited: Bool = false,
         createdBy: String,
-        createdAt: Date = .now
+        createdAt: Date = .now,
+        link: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -67,6 +70,7 @@ nonisolated struct SavedPlace: Identifiable, Codable, Hashable, Sendable {
         self.isVisited = isVisited
         self.createdBy = createdBy
         self.createdAt = createdAt
+        self.link = link
     }
 }
 
@@ -78,6 +82,7 @@ nonisolated struct PlaceSearchResult: Identifiable, Hashable, Sendable {
     let category: String
     let latitude: Double
     let longitude: Double
+    var link: String? = nil
 
     var coordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)

@@ -214,4 +214,23 @@ enum NaverMapLink {
         ]
         return components.url
     }
+
+    /// 네이버 지도 앱에서 검색 (가게를 눌러 영업시간·메뉴·리뷰를 볼 수 있다)
+    static func searchAppURL(query: String) -> URL? {
+        var components = URLComponents()
+        components.scheme = "nmap"
+        components.host = "search"
+        components.queryItems = [
+            URLQueryItem(name: "query", value: query),
+            URLQueryItem(name: "appname", value: Bundle.main.bundleIdentifier ?? "gaeuni.OurLog"),
+        ]
+        return components.url
+    }
+
+    /// 앱이 없을 때 쓰는 모바일 웹 검색
+    static func searchWebURL(query: String) -> URL? {
+        var components = URLComponents(string: "https://m.map.naver.com/search")
+        components?.queryItems = [URLQueryItem(name: "query", value: query)]
+        return components?.url
+    }
 }
