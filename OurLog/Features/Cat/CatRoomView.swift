@@ -135,30 +135,39 @@ struct CatRoomView: View {
 
     /// 6단계를 점으로 나열해 지금 어디쯤인지 보여준다.
     private var stageTrack: some View {
-        HStack(spacing: 0) {
-            ForEach(CatStage.allCases) { stage in
-                let reached = stage <= app.cat.stage
+        let stages = CatStage.allCases
+        let current = app.cat.stage
 
-                VStack(spacing: 5) {
-                    Circle()
-                        .fill(reached ? palette.primary : palette.outline)
-                        .frame(width: reached ? 11 : 8, height: reached ? 11 : 8)
-                    Text("\(stage.rawValue)")
-                        .font(.hand(14, bold: true))
-                        .foregroundStyle(reached ? palette.primary : palette.textSecondary)
+        return GeometryReader { geo in
+            let cell = geo.size.width / CGFloat(stages.count)
+            let centerX = { (index: Int) in cell * (CGFloat(index) + 0.5) }
+            let currentIndex = stages.firstIndex(of: current) ?? 0
+            let y = geo.size.height / 2
+
+            ZStack(alignment: .topLeading) {
+                // 전체 길 (첫 단계 중심 → 마지막 단계 중심)
+                SketchLine(seed: 501)
+                    .stroke(palette.ink.opacity(0.25), style: StrokeStyle(lineWidth: 1.6, lineCap: .round))
+                    .frame(width: centerX(stages.count - 1) - centerX(0), height: 10)
+                    .position(x: (centerX(0) + centerX(stages.count - 1)) / 2, y: y)
+
+                // 지나온 길
+                if currentIndex > 0 {
+                    SketchLine(seed: 502)
+                        .stroke(palette.pen, style: StrokeStyle(lineWidth: 2.6, lineCap: .round))
+                        .frame(width: centerX(currentIndex) - centerX(0), height: 10)
+                        .position(x: (centerX(0) + centerX(currentIndex)) / 2, y: y)
                 }
-                .frame(maxWidth: .infinity)
-                .overlay(alignment: .top) {
-                    if stage != .radiant {
-                        Rectangle()
-                            .fill(stage < app.cat.stage ? palette.primary : palette.outline)
-                            .frame(height: 2)
-                            .padding(.leading, 20)
-                            .offset(y: 4.5)
-                    }
+
+                ForEach(Array(stages.enumerated()), id: \.element) { index, stage in
+                    StageDot(number: stage.rawValue, state: index < currentIndex ? .passed : (index == currentIndex ? .current : .upcoming))
+                        .position(x: centerX(index), y: y)
                 }
             }
         }
+        .frame(height: 36)
+        .accessibilityElement()
+        .accessibilityLabel("6단계 중 \(current.rawValue)단계")
     }
 
     // MARK: 키우는 법
@@ -251,4 +260,53 @@ struct EvolutionCelebrationView: View {
     CatRoomView()
         .environment(AppEnvironment.makeAppState())
         .environment(\.palette, AppTheme.default.palette)
+}
+
+// MARK: - 단계 점
+
+private struct StageDot: View {
+    enum State { case passed, current, upcoming }
+
+    let number: Int
+    let state: State
+
+    @Environment(\.palette) private var palette
+
+    var body: some View {
+        let size: CGFloat = state == .current ? 32 : 24
+        let seed = UInt64(number) &+ 610
+
+        Text("\(number)")
+            .font(.hand(state == .current ? 20 : 16, bold: state != .upcoming))
+            .foregroundStyle(foreground)
+            .frame(width: size, height: size)
+            .background(SketchCircle(seed: seed, roughness: 1.2).fill(fill))
+            .overlay(
+                SketchCircle(seed: seed, roughness: 1.2)
+                    .stroke(stroke, lineWidth: state == .current ? 2.2 : 1.5)
+            )
+    }
+
+    private var fill: Color {
+        switch state {
+        case .passed: palette.penSoft
+        case .current: palette.pen
+        case .upcoming: palette.card
+        }
+    }
+
+    private var foreground: Color {
+        switch state {
+        case .passed: palette.ink
+        case .current: palette.paper
+        case .upcoming: palette.inkSoft.opacity(0.6)
+        }
+    }
+
+    private var stroke: Color {
+        switch state {
+        case .passed, .current: palette.ink
+        case .upcoming: palette.ink.opacity(0.3)
+        }
+    }
 }
