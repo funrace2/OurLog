@@ -29,6 +29,8 @@ struct NaverPlacesMap: UIViewRepresentable {
     var interactive = true
     /// 내 위치(파란 점)와 내 위치 버튼을 보여줄지
     var showsMyLocation = false
+    /// 나침반을 지도 위쪽에서 얼마나 내려 둘지 (검색창 같은 위 오버레이에 가리지 않게)
+    var compassTopInset: CGFloat = 12
     var onSelectPlace: (SavedPlace) -> Void = { _ in }
     var onSelectResult: (PlaceSearchResult) -> Void = { _ in }
     var onCenterChange: (CLLocationCoordinate2D) -> Void = { _ in }
@@ -42,10 +44,12 @@ struct NaverPlacesMap: UIViewRepresentable {
         naverView.showZoomControls = false
         naverView.showLocationButton = showsMyLocation
         naverView.showScaleBar = interactive
-        naverView.showCompass = interactive
+        // 내장 나침반은 왼쪽 위라 검색창에 가린다 → 끄고 오른쪽에 따로 둔다 (회전하면 나타난다)
+        naverView.showCompass = false
 
         let map = naverView.mapView
         map.addCameraDelegate(delegate: context.coordinator)
+        map.addOptionDelegate(delegate: context.coordinator)
         map.isScrollGestureEnabled = interactive
         map.isZoomGestureEnabled = interactive
         map.isRotateGestureEnabled = interactive   // 두 손가락으로 돌리기 (나침반을 누르면 북쪽으로 돌아온다)
@@ -55,6 +59,17 @@ struct NaverPlacesMap: UIViewRepresentable {
         map.moveCamera(NMFCameraUpdate(scrollTo: NMGLatLng(lat: start.latitude, lng: start.longitude),
                                        zoomTo: focus?.zoom ?? 12))
         context.coordinator.lastFocusID = focus?.id
+
+        if interactive {
+            let compass = NMFCompassView()
+            compass.mapView = map
+            compass.translatesAutoresizingMaskIntoConstraints = false
+            naverView.addSubview(compass)
+            NSLayoutConstraint.activate([
+                compass.trailingAnchor.constraint(equalTo: naverView.safeAreaLayoutGuide.trailingAnchor, constant: -12),
+                compass.topAnchor.constraint(equalTo: naverView.safeAreaLayoutGuide.topAnchor, constant: compassTopInset),
+            ])
+        }
 
         if showsMyLocation {
             // 따로 보여줄 곳이 없으면 내 위치로 가서 따라간다. 손으로 지도를 움직이면 SDK 가 추적을 풀어 준다.
@@ -83,11 +98,14 @@ struct NaverPlacesMap: UIViewRepresentable {
 
     // MARK: - Coordinator
 
-    final class Coordinator: NSObject, NMFMapViewCameraDelegate, CLLocationManagerDelegate {
+    final class Coordinator: NSObject, NMFMapViewCameraDelegate, NMFMapViewOptionDelegate, CLLocationManagerDelegate {
         var parent: NaverPlacesMap?
         private let locationManager = CLLocationManager()
         private weak var locationMap: NMFMapView?
         private var followUser = false
+        /// 위치 추적은 처음 한 번만 켠다. 이후엔 사용자가 내 위치 버튼으로 고른 모드를 건드리지 않는다.
+        private var didStartTracking = false
+        private var lastPositionMode: NMFMyPositionMode?
 
         /// 권한이 없으면 먼저 물어보고, 허락되면 위치 표시를 켠다.
         func startLocation(on map: NMFMapView, followUser: Bool) {
@@ -98,18 +116,25 @@ struct NaverPlacesMap: UIViewRepresentable {
             case .notDetermined:
                 locationManager.requestWhenInUseAuthorization()
             case .authorizedWhenInUse, .authorizedAlways:
-                map.positionMode = followUser ? .direction : .normal
+                beginTracking(on: map)
             default:
                 break   // 거절한 경우엔 지도만 보여준다
             }
         }
 
+        private func beginTracking(on map: NMFMapView) {
+            guard !didStartTracking else { return }
+            didStartTracking = true
+            map.positionMode = followUser ? .direction : .normal
+        }
+
         nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
             MainActor.assumeIsolated {
                 guard let map = locationMap else { return }
+                // 이 콜백은 앱이 다시 활성화될 때도 불린다. 처음 허락받았을 때만 추적을 켠다.
                 switch manager.authorizationStatus {
                 case .authorizedWhenInUse, .authorizedAlways:
-                    map.positionMode = followUser ? .direction : .normal
+                    beginTracking(on: map)
                 default:
                     break
                 }
@@ -120,8 +145,15 @@ struct NaverPlacesMap: UIViewRepresentable {
         /// 같은 모양 마커 이미지를 매번 다시 굽지 않도록
         private var iconCache: [String: NMFOverlayImage] = [:]
 
+        /// 지금 찍혀 있는 마커가 어떤 데이터로 그려졌는지. 같으면 다시 그리지 않는다.
+        private var markerSignature: [AnyHashable] = []
+
         func syncMarkers(on map: NMFMapView, places: [SavedPlace], results: [PlaceSearchResult], palette: ThemePalette) {
-            // 마커가 많지 않아서 통째로 다시 그린다
+            let signature: [AnyHashable] = places.map { AnyHashable($0) } + results.map { AnyHashable($0) } + [AnyHashable("\(palette.pen)")]
+            guard signature != markerSignature else { return }
+            markerSignature = signature
+
+            // 마커가 많지 않아서 바뀌었을 때는 통째로 다시 그린다
             markers.forEach { $0.mapView = nil }
             markers.removeAll()
 
@@ -173,6 +205,23 @@ struct NaverPlacesMap: UIViewRepresentable {
             let image = NMFOverlayImage(image: renderer.uiImage ?? UIImage())
             iconCache[key] = image
             return image
+        }
+
+        // NMFMapViewOptionDelegate — 내 위치 버튼으로 모드가 바뀌는 걸 콘솔에 남긴다 (방향 모드 문제 확인용)
+        nonisolated func mapViewOptionChanged(_ mapView: NMFMapView) {
+            MainActor.assumeIsolated {
+                let mode = mapView.positionMode
+                guard mode != lastPositionMode else { return }
+                lastPositionMode = mode
+                let name = switch mode {
+                case .disabled: "꺼짐"
+                case .normal: "위치만 표시"
+                case .direction: "따라가기"
+                case .compass: "방향 따라 회전"
+                @unknown default: "알 수 없음(\(mode.rawValue))"
+                }
+                print("[지도] 내 위치 모드 → \(name)")
+            }
         }
 
         // NMFMapViewCameraDelegate — 지도 콜백은 메인 스레드에서 온다

@@ -26,7 +26,9 @@ struct PlacesMapView: View {
     /// 지도에서 누른 저장된 장소
     @State private var selectedPlace: SavedPlace?
 
-    @State private var mapCenter = CLLocationCoordinate2D.seoulCenter
+    /// 지도 중심 (검색할 때만 쓴다). @State 로 두면 지도가 멈출 때마다 화면 전체가 다시 그려져서,
+    /// 관찰되지 않는 보관함에 담는다.
+    @State private var center = MapCenterBox()
     /// 네이버 지도를 옮겨 달라는 요청 (검색 결과로 이동할 때)
     @State private var naverFocus: MapFocus?
     /// MapKit 지도에서 위치 권한을 묻는 데 쓴다 (네이버 지도는 래퍼 안에서 따로 묻는다)
@@ -87,9 +89,10 @@ struct PlacesMapView: View {
                 categoryFor: { app.category(id: $0) },
                 focus: naverFocus,
                 showsMyLocation: true,
+                compassTopInset: 112,   // 검색창 + 카테고리 칩 아래
                 onSelectPlace: { selectedPlace = $0 },
                 onSelectResult: { placeToSave = $0 },
-                onCenterChange: { mapCenter = $0 }
+                onCenterChange: { center.coordinate = $0 }
             )
             .ignoresSafeArea(edges: .bottom)
         } else {
@@ -127,7 +130,7 @@ struct PlacesMapView: View {
                 MapScaleView()
             }
             .onMapCameraChange { context in
-                mapCenter = context.region.center
+                center.coordinate = context.region.center
             }
             .onAppear {
                 if locationManager.authorizationStatus == .notDetermined {
@@ -176,7 +179,7 @@ struct PlacesMapView: View {
         defer { isSearching = false }
 
         do {
-            searchResults = try await searchService.search(query: query, near: mapCenter)
+            searchResults = try await searchService.search(query: query, near: center.coordinate)
             if let first = searchResults.first {
                 naverFocus = MapFocus(coordinate: first.coordinate)
                 withAnimation {
@@ -317,4 +320,9 @@ extension CLLocationCoordinate2D {
     PlacesMapView()
         .environment(AppEnvironment.makeAppState())
         .environment(\.palette, AppTheme.default.palette)
+}
+
+/// 바뀌어도 화면을 다시 그리지 않는 지도 중심 보관함 (일부러 @Observable 이 아니다)
+final class MapCenterBox {
+    var coordinate = CLLocationCoordinate2D.seoulCenter
 }
