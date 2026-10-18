@@ -4,22 +4,148 @@
 //
 //  장소 검색.
 //
-//  NaverKeys.plist 에 검색 키가 있으면 네이버 지역검색, 없으면 MapKit 으로 검색한다.
+//  우선순위: 카카오 로컬(KakaoKeys.plist) → 네이버 지역검색(NaverKeys.plist) → Apple 지도(MapKit)
 //
 
 import Foundation
 import MapKit
 
+/// 검색 결과 한 페이지. next 가 있으면 "더 보기"로 이어서 받을 수 있다.
+nonisolated struct PlaceSearchPage: Sendable {
+    var results: [PlaceSearchResult]
+    var next: PlaceSearchCursor?
+    /// 어디를 기준으로 찾았는지 (목록 위에 보여준다). nil 이면 표시하지 않는다.
+    var scope: String?
+}
+
+/// 다음 페이지를 받기 위한 정보
+nonisolated struct PlaceSearchCursor: Sendable {
+    let query: String
+    let center: CLLocationCoordinate2D?
+    let radius: Int?
+    let page: Int
+}
+
 @MainActor
 protocol PlaceSearchService {
-    func search(query: String, near center: CLLocationCoordinate2D?) async throws -> [PlaceSearchResult]
+    func search(query: String, near center: CLLocationCoordinate2D?) async throws -> PlaceSearchPage
+    func more(_ cursor: PlaceSearchCursor) async throws -> PlaceSearchPage
+}
+
+extension PlaceSearchService {
+    /// 페이지가 없는 검색(네이버·Apple)은 더 받을 게 없다
+    func more(_ cursor: PlaceSearchCursor) async throws -> PlaceSearchPage {
+        PlaceSearchPage(results: [], next: nil)
+    }
+}
+
+// MARK: - 카카오
+
+/// 카카오 로컬 키워드 검색. 지도 가운데 기준 20km 안에서 정확도순으로 찾고,
+/// 없으면 전국에서 다시 찾는다. 한 페이지 15개, 최대 3페이지(45개).
+@MainActor
+final class KakaoPlaceSearchService: PlaceSearchService {
+    private static let nearbyRadius = 20_000   // 카카오가 허용하는 최대 반경(m)
+    private static let pageSize = 15
+
+    private struct Response: Decodable {
+        struct Meta: Decodable {
+            let is_end: Bool
+        }
+        struct Document: Decodable {
+            let id: String
+            let place_name: String
+            let category_name: String
+            let address_name: String
+            let road_address_name: String
+            let x: String
+            let y: String
+            let place_url: String
+            let distance: String?
+        }
+        let meta: Meta
+        let documents: [Document]
+    }
+
+    func search(query: String, near center: CLLocationCoordinate2D?) async throws -> PlaceSearchPage {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return PlaceSearchPage(results: [], next: nil) }
+
+        if center != nil {
+            let nearby = try await fetch(PlaceSearchCursor(query: trimmed, center: center, radius: Self.nearbyRadius, page: 1))
+            if !nearby.results.isEmpty { return nearby }
+        }
+        // 주변에 없으면 전국에서 (다른 동네 가게 이름을 칠 때). 거리는 계속 지도 가운데 기준으로 보여준다.
+        return try await fetch(PlaceSearchCursor(query: trimmed, center: center, radius: nil, page: 1))
+    }
+
+    func more(_ cursor: PlaceSearchCursor) async throws -> PlaceSearchPage {
+        try await fetch(cursor)
+    }
+
+    private func fetch(_ cursor: PlaceSearchCursor) async throws -> PlaceSearchPage {
+        guard let key = KakaoKeys.restApiKey else { return PlaceSearchPage(results: [], next: nil) }
+
+        var items = [
+            URLQueryItem(name: "query", value: cursor.query),
+            URLQueryItem(name: "page", value: String(cursor.page)),
+            URLQueryItem(name: "size", value: String(Self.pageSize)),
+            URLQueryItem(name: "sort", value: "accuracy"),
+        ]
+        if let center = cursor.center {
+            items.append(URLQueryItem(name: "x", value: String(center.longitude)))
+            items.append(URLQueryItem(name: "y", value: String(center.latitude)))
+        }
+        if let radius = cursor.radius {
+            items.append(URLQueryItem(name: "radius", value: String(radius)))
+        }
+        var components = URLComponents(string: "https://dapi.kakao.com/v2/local/search/keyword.json")!
+        components.queryItems = items
+
+        var request = URLRequest(url: components.url!)
+        request.setValue("KakaoAK \(key)", forHTTPHeaderField: "Authorization")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        if let http = response as? HTTPURLResponse, http.statusCode != 200 {
+            throw URLError(.badServerResponse, userInfo: [
+                NSLocalizedDescriptionKey: "카카오 검색 오류 (\(http.statusCode)): \(String(data: data, encoding: .utf8) ?? "")",
+            ])
+        }
+
+        let decoded = try JSONDecoder().decode(Response.self, from: data)
+        let results = decoded.documents.compactMap { doc -> PlaceSearchResult? in
+            guard let lng = Double(doc.x), let lat = Double(doc.y) else { return nil }
+            return PlaceSearchResult(
+                id: "kakao-\(doc.id)",
+                name: doc.place_name,
+                address: doc.road_address_name.isEmpty ? doc.address_name : doc.road_address_name,
+                // "음식점 > 카페 > 커피전문점" → "커피전문점"
+                category: doc.category_name.components(separatedBy: " > ").last ?? "",
+                latitude: lat,
+                longitude: lng,
+                // 카카오맵 장소 페이지 (영업시간·메뉴·리뷰). http 로 와서 https 로 바꾼다.
+                link: doc.place_url.replacingOccurrences(of: "http://", with: "https://"),
+                distance: doc.distance.flatMap(Double.init)
+            )
+        }
+
+        let next = decoded.meta.is_end || cursor.page >= 3
+            ? nil
+            : PlaceSearchCursor(query: cursor.query, center: cursor.center, radius: cursor.radius, page: cursor.page + 1)
+        let scope: String? = cursor.center == nil ? nil : (cursor.radius == nil ? "주변엔 없어서 전국에서 찾았어요" : "지도 가운데 근처에서 찾았어요")
+        return PlaceSearchPage(results: results, next: next, scope: scope)
+    }
 }
 
 // MARK: - MapKit
 
 @MainActor
 final class MapKitPlaceSearchService: PlaceSearchService {
-    func search(query: String, near center: CLLocationCoordinate2D?) async throws -> [PlaceSearchResult] {
+    func search(query: String, near center: CLLocationCoordinate2D?) async throws -> PlaceSearchPage {
+        PlaceSearchPage(results: try await results(query: query, near: center), next: nil)
+    }
+
+    private func results(query: String, near center: CLLocationCoordinate2D?) async throws -> [PlaceSearchResult] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
 
@@ -68,7 +194,11 @@ final class NaverPlaceSearchService: PlaceSearchService {
         let mapy: String
     }
 
-    func search(query: String, near center: CLLocationCoordinate2D?) async throws -> [PlaceSearchResult] {
+    func search(query: String, near center: CLLocationCoordinate2D?) async throws -> PlaceSearchPage {
+        PlaceSearchPage(results: try await results(query: query), next: nil)
+    }
+
+    private func results(query: String) async throws -> [PlaceSearchResult] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty,
               let clientID = NaverKeys.searchClientId,

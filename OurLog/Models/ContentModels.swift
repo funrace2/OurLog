@@ -83,6 +83,8 @@ nonisolated struct PlaceSearchResult: Identifiable, Hashable, Sendable {
     let latitude: Double
     let longitude: Double
     var link: String? = nil
+    /// 검색 기준점(지도 가운데)에서의 거리, 미터. 위치 기반 검색일 때만 있다.
+    var distance: Double? = nil
 
     var coordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)

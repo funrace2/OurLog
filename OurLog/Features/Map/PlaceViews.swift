@@ -317,9 +317,10 @@ struct PlaceDetailView: View {
         }
     }
 
-    /// 인스타그램이면 "인스타그램", 아니면 "홈페이지"
+    /// 링크 종류에 맞는 버튼 이름
     private static func linkTitle(_ url: URL) -> String {
         let host = url.host() ?? ""
+        if host.contains("place.map.kakao") { return "카카오맵 정보 (영업시간·메뉴·리뷰)" }
         if host.contains("instagram") { return "인스타그램" }
         if host.contains("blog.naver") { return "블로그" }
         return "홈페이지"

@@ -17,6 +17,11 @@ struct PlacesMapView: View {
     @State private var camera: MapCameraPosition = .region(.seoul)
     @State private var searchText = ""
     @State private var searchResults: [PlaceSearchResult] = []
+    /// "더 보기"로 이어 받을 다음 페이지
+    @State private var searchNext: PlaceSearchCursor?
+    /// 어디 기준으로 찾았는지 안내 문구
+    @State private var searchScope: String?
+    @State private var isLoadingMore = false
     @State private var isSearching = false
     @State private var selectedCategoryID: String?
     @State private var showList = false
@@ -160,6 +165,8 @@ struct PlacesMapView: View {
                 Button {
                     searchText = ""
                     searchResults = []
+                    searchNext = nil
+                    searchScope = nil
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(palette.textSecondary)
@@ -179,7 +186,13 @@ struct PlacesMapView: View {
         defer { isSearching = false }
 
         do {
-            searchResults = try await searchService.search(query: query, near: center.coordinate)
+            let page = try await searchService.search(query: query, near: center.coordinate)
+            searchResults = page.results
+            searchNext = page.next
+            searchScope = page.scope
+            if page.results.isEmpty {
+                app.toast = Toast(text: "검색 결과가 없어요")
+            }
             if let first = searchResults.first {
                 naverFocus = MapFocus(coordinate: first.coordinate)
                 withAnimation {
@@ -191,13 +204,44 @@ struct PlacesMapView: View {
                 }
             }
         } catch {
+            print("장소 검색 실패: \(error)")
             app.errorMessage = "검색에 실패했어요. 잠시 후 다시 시도해 주세요."
         }
+    }
+
+    private func loadMore() async {
+        guard let cursor = searchNext, !isLoadingMore else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        do {
+            let page = try await searchService.more(cursor)
+            // 같은 장소가 두 번 나오지 않게
+            let known = Set(searchResults.map(\.id))
+            searchResults += page.results.filter { !known.contains($0.id) }
+            searchNext = page.next
+        } catch {
+            print("장소 검색(더 보기) 실패: \(error)")
+            searchNext = nil
+        }
+    }
+
+    /// 350m / 1.2km
+    private nonisolated static func distanceText(_ meters: Double) -> String {
+        meters < 1000 ? "\(Int(meters.rounded()))m" : String(format: "%.1fkm", meters / 1000)
     }
 
     private var searchResultList: some View {
         ScrollView {
             VStack(spacing: 0) {
+                if let searchScope {
+                    Text(searchScope)
+                        .font(.hand(15))
+                        .foregroundStyle(palette.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 10)
+                }
+
                 ForEach(searchResults) { result in
                     Button {
                         placeToSave = result
@@ -207,7 +251,8 @@ struct PlacesMapView: View {
                                 Text(result.name)
                                     .font(.hand(20, bold: true))
                                     .foregroundStyle(palette.textPrimary)
-                                Text(result.address)
+                                Text([result.distance.map(Self.distanceText), result.category.isEmpty ? nil : result.category, result.address]
+                                    .compactMap { $0 }.joined(separator: " · "))
                                     .font(.hand(16))
                                     .foregroundStyle(palette.textSecondary)
                                     .lineLimit(1)
@@ -224,9 +269,24 @@ struct PlacesMapView: View {
 
                     SketchDivider().padding(.leading, 16)
                 }
+
+                if searchNext != nil {
+                    Button {
+                        Task { await loadMore() }
+                    } label: {
+                        HStack(spacing: 6) {
+                            if isLoadingMore { ProgressView().controlSize(.small) }
+                            Text("더 보기")
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.softPlain)
+                    .disabled(isLoadingMore)
+                    .padding(.vertical, 4)
+                }
             }
         }
-        .frame(maxHeight: 280)
+        .frame(maxHeight: 320)
         .sketchBox(seed: 333, fill: palette.surface, roughness: 1.3, lineWidth: 1.6)
         .padding(.horizontal, 16)
     }

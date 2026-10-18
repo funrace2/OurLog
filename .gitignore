@@ -120,3 +120,6 @@ storage.rules
 
 # 네이버 지도/검색 키 (앱에 직접 들어가는 키라 저장소에는 올리지 않는다)
 OurLog/NaverKeys.plist
+
+# 카카오 로컬 검색 키
+OurLog/KakaoKeys.plist

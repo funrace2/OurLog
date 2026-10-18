@@ -41,7 +41,8 @@ enum AppEnvironment {
     }
 
     static func makePlaceSearchService() -> PlaceSearchService {
-        NaverKeys.hasSearchKey ? NaverPlaceSearchService() : MapKitPlaceSearchService()
+        if KakaoKeys.hasKey { return KakaoPlaceSearchService() }
+        return NaverKeys.hasSearchKey ? NaverPlaceSearchService() : MapKitPlaceSearchService()
     }
 
     static func makeAppState() -> AppState {
