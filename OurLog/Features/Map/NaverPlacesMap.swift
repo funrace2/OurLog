@@ -48,7 +48,7 @@ struct NaverPlacesMap: UIViewRepresentable {
         map.addCameraDelegate(delegate: context.coordinator)
         map.isScrollGestureEnabled = interactive
         map.isZoomGestureEnabled = interactive
-        map.isRotateGestureEnabled = false
+        map.isRotateGestureEnabled = interactive   // 두 손가락으로 돌리기 (나침반을 누르면 북쪽으로 돌아온다)
         map.isTiltGestureEnabled = false
 
         let start = focus?.coordinate ?? .seoulCenter
