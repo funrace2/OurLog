@@ -224,13 +224,20 @@ struct CategoryPicker: View {
 
     @Environment(AppState.self) private var app
     @Environment(\.palette) private var palette
+    @State private var showManager = false
 
     var body: some View {
         CuteCard {
             VStack(alignment: .leading, spacing: 10) {
-                Text("카테고리")
-                    .font(.hand(18, bold: true))
-                    .foregroundStyle(palette.textSecondary)
+                HStack {
+                    Text("카테고리")
+                        .font(.hand(18, bold: true))
+                        .foregroundStyle(palette.textSecondary)
+                    Spacer()
+                    Button("편집") { showManager = true }
+                        .font(.hand(17, bold: true))
+                        .foregroundStyle(palette.pen)
+                }
 
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: 8)], spacing: 8) {
                     ForEach(app.categories) { category in
@@ -260,6 +267,16 @@ struct CategoryPicker: View {
                     }
                 }
             }
+        }
+        .sheet(isPresented: $showManager) { CategoryManagerView() }
+        // 고른 카테고리가 지워졌으면(또는 기본값이 숨겨졌으면) 남은 첫 카테고리로
+        .onAppear(perform: keepSelectionValid)
+        .onChange(of: app.categories.map(\.id)) { _, _ in keepSelectionValid() }
+    }
+
+    private func keepSelectionValid() {
+        if !app.categories.contains(where: { $0.id == selection }), let first = app.categories.first {
+            selection = first.id
         }
     }
 }
@@ -809,6 +826,7 @@ struct SavedPlaceListView: View {
 
     @State private var selectedCategoryID: String?
     @State private var selectedPlace: SavedPlace?
+    @State private var showCategories = false
     /// 마지막으로 고른 정렬을 기억한다 (기본: 최신순)
     @AppStorage("savedPlaces.sort") private var sort: PlaceSort = .latest
 
@@ -893,7 +911,15 @@ struct SavedPlaceListView: View {
             }
             .navigationTitle("저장한 장소")
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $showCategories) { CategoryManagerView() }
+            // 필터로 고른 카테고리가 지워지면 "전체"로
+            .onChange(of: app.categories.map(\.id)) { _, ids in
+                if let selected = selectedCategoryID, !ids.contains(selected) { selectedCategoryID = nil }
+            }
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("카테고리") { showCategories = true }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("닫기") { dismiss() }
                 }

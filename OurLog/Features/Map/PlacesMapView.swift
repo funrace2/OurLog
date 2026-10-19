@@ -82,6 +82,10 @@ struct PlacesMapView: View {
                 }
             }
             .animation(.easeInOut(duration: 0.2), value: resolvingSymbol)
+            // 필터로 고른 카테고리가 지워지면 "전체"로
+            .onChange(of: app.categories.map(\.id)) { _, ids in
+                if let selected = selectedCategoryID, !ids.contains(selected) { selectedCategoryID = nil }
+            }
             .navigationTitle("우리 지도")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

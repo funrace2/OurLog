@@ -64,7 +64,16 @@ final class AppState {
         return couple?.partner(otherThan: user.id)
     }
 
-    var categories: [PlaceCategory] { snapshot?.categories ?? PlaceCategory.defaults }
+    /// 보이는 카테고리 (숨긴 기본 카테고리 제외). 기본 → 직접 만든 순서.
+    var categories: [PlaceCategory] {
+        let all = snapshot?.categories ?? PlaceCategory.defaults
+        let defaults = all.filter(\.isDefault)
+            .sorted { a, b in
+                (PlaceCategory.defaults.firstIndex { $0.id == a.id } ?? 0) < (PlaceCategory.defaults.firstIndex { $0.id == b.id } ?? 0)
+            }
+        let custom = all.filter { !$0.isDefault }.sorted { ($0.createdAt ?? .distantPast) < ($1.createdAt ?? .distantPast) }
+        return (defaults + custom).filter { $0.isHidden != true }
+    }
     var places: [SavedPlace] { snapshot?.places ?? [] }
     var events: [CalendarEvent] { snapshot?.events ?? [] }
     var diaries: [DiaryEntry] {
@@ -326,8 +335,38 @@ final class AppState {
         await delete(SavedPlace.self, id: id)
     }
 
-    func addCategory(_ category: PlaceCategory) async {
+    /// 카테고리 추가·수정
+    func saveCategory(_ category: PlaceCategory) async {
         await upsert(category)
+    }
+
+    /// 이 카테고리에 있는 장소 수
+    func placeCount(in categoryID: String) -> Int {
+        places.filter { $0.categoryID == categoryID }.count
+    }
+
+    /// 지울 때 장소들을 옮길 카테고리 (지우는 것 말고 맨 앞)
+    func fallbackCategory(excluding categoryID: String) -> PlaceCategory? {
+        categories.first { $0.id != categoryID }
+    }
+
+    /// 카테고리 삭제. 안에 있던 장소는 남은 첫 카테고리로 옮긴다. 마지막 하나는 지우지 않는다.
+    func deleteCategory(_ category: PlaceCategory) async {
+        guard let fallback = fallbackCategory(excluding: category.id) else { return }
+
+        for place in places where place.categoryID == category.id {
+            var moved = place
+            moved.categoryID = fallback.id
+            await upsert(moved)
+        }
+
+        if category.isDefault {
+            var hidden = category
+            hidden.isHidden = true
+            await upsert(hidden)
+        } else {
+            await delete(PlaceCategory.self, id: category.id)
+        }
     }
 
     // MARK: 일정

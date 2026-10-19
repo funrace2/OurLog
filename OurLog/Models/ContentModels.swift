@@ -16,8 +16,15 @@ nonisolated struct PlaceCategory: Identifiable, Codable, Hashable, Sendable {
     var name: String
     var symbol: String
     var colorHex: UInt32
+    /// 기본 카테고리를 "삭제"한 표시. 기본 카테고리는 저장소에 없고 앱이 붙여 주는 거라,
+    /// 지운 걸 기억하려면 숨김 표시를 저장해야 한다. (직접 만든 카테고리는 그냥 지운다)
+    var isHidden: Bool? = nil
+    /// 만든 순서대로 보여주기 위해
+    var createdAt: Date? = nil
 
     var color: Color { Color(hex: colorHex) }
+
+    var isDefault: Bool { Self.defaults.contains { $0.id == id } }
 
     static let restaurant = PlaceCategory(id: "cat-food", name: "맛집", symbol: "fork.knife", colorHex: 0xF08A6E)
     static let cafe = PlaceCategory(id: "cat-cafe", name: "카페", symbol: "cup.and.saucer.fill", colorHex: 0xB08663)
