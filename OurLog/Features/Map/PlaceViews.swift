@@ -367,7 +367,8 @@ struct PlaceDetailView: View {
                     }
                 }
 
-                Text(place.address)
+                Text([PlaceFormat.distanceFromMe(to: place.coordinate).map { "내 위치에서 \($0)" }, place.address]
+                    .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "))
                     .font(.hand(18))
                     .foregroundStyle(palette.textSecondary)
 
@@ -835,6 +836,14 @@ struct PlaceRow: View {
                 }
 
                 Spacer()
+
+                if let distance = PlaceFormat.distanceFromMe(to: place.coordinate) {
+                    Text(distance)
+                        .font(.hand(16))
+                        .foregroundStyle(palette.textSecondary)
+                        .lineLimit(1)
+                        .fixedSize()
+                }
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .bold))
