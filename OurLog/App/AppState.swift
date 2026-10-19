@@ -154,6 +154,7 @@ final class AppState {
             snapshot = try await repository.loadSnapshot(coupleID: coupleID)
             connect(coupleID: coupleID)
             phase = .ready
+            await rebalanceCatIfNeeded()
             await checkInIfNeeded()
         } catch {
             errorMessage = error.localizedDescription
@@ -200,6 +201,7 @@ final class AppState {
             snapshot = try await repository.loadSnapshot(coupleID: couple.id)
             connect(coupleID: couple.id)
             phase = .ready
+            await rebalanceCatIfNeeded()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -270,7 +272,8 @@ final class AppState {
     /// 애정도를 올리고, 단계가 올랐으면 축하 화면을 띄운다.
     func gainAffection(_ action: AffectionAction, silent: Bool = false) async {
         guard var couple else { return }
-        let evolved = couple.cat.gain(action)
+        // 오늘 이 행동으로 받을 만큼 다 받았으면 저장도 알림도 하지 않는다
+        guard case .gained(let evolved) = couple.cat.gain(action) else { return }
         await save(couple)
 
         if let evolved {
@@ -280,6 +283,13 @@ final class AppState {
         }
     }
 
+    /// 성장 기준이 바뀌었으면 예전 애정도를 새 기준으로 한 번 옮긴다 (단계·진행률 유지).
+    /// 두 폰이 동시에 해도 같은 값에서 같은 값으로 바뀌어서 괜찮다.
+    private func rebalanceCatIfNeeded() async {
+        guard var couple, couple.cat.rebalanceIfNeeded() else { return }
+        await save(couple)
+    }
+
     /// 하루에 한 번 출석 애정도.
     private func checkInIfNeeded() async {
         guard var couple else { return }
@@ -287,7 +297,7 @@ final class AppState {
         if let last = couple.cat.lastCheckIn, cal.isDateInToday(last) { return }
 
         couple.cat.lastCheckIn = .now
-        let evolved = couple.cat.gain(.dailyCheckIn)
+        guard case .gained(let evolved) = couple.cat.gain(.dailyCheckIn) else { return }
         await save(couple)
 
         if let evolved {

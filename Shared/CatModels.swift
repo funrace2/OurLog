@@ -34,14 +34,15 @@ nonisolated enum CatStage: Int, CaseIterable, Codable, Identifiable, Sendable, C
     }
 
     /// 이 단계가 되기 위해 필요한 누적 애정도
+    /// 둘이 평소처럼 쓰면(하루 25점 안팎) 대략: 반알 1주, 애기 1달, 청소년 3달, 어른 6달, 반짝 1년
     var requiredAffection: Int {
         switch self {
         case .egg: 0
-        case .crackedEgg: 60
-        case .kitten: 180
-        case .teen: 400
-        case .adult: 800
-        case .radiant: 1500
+        case .crackedEgg: 150
+        case .kitten: 700
+        case .teen: 2_200
+        case .adult: 4_500
+        case .radiant: 9_000
         }
     }
 
@@ -86,6 +87,15 @@ nonisolated enum AffectionAction: String, Codable, Sendable {
         case .addEvent: 5
         case .celebrateAnniversary: 30
         case .pet: 2
+        }
+    }
+
+    /// 하루에 애정도를 받을 수 있는 횟수 (둘이 합쳐서). 넘으면 기록은 되지만 애정도는 오르지 않는다.
+    var dailyLimit: Int {
+        switch self {
+        case .dailyCheckIn, .pet, .celebrateAnniversary: 1
+        case .addDiary, .visitPlace: 2
+        case .savePlace, .addEvent, .addPhoto: 3
         }
     }
 
@@ -162,6 +172,13 @@ nonisolated struct CatState: Codable, Hashable, Sendable {
     var placedRoomItems: [RoomSlot: String]
     /// 마지막으로 출석 애정도를 받은 날
     var lastCheckIn: Date?
+    /// 성장 기준 버전. 기준을 바꿀 때 예전 애정도를 한 번만 옮기기 위해. (없으면 1)
+    var balanceVersion: Int?
+    /// 하루 상한을 세는 날짜("2026-10-20")와 그날 행동별 횟수 (둘이 공유)
+    var todayKey: String?
+    var todayCounts: [String: Int]?
+
+    static let currentBalance = 2
 
     init(
         name: String = "아직 이름이 없어요",
@@ -175,6 +192,7 @@ nonisolated struct CatState: Codable, Hashable, Sendable {
         self.equippedAccessories = equippedAccessories
         self.placedRoomItems = placedRoomItems
         self.lastCheckIn = lastCheckIn
+        self.balanceVersion = Self.currentBalance
     }
 
     var stage: CatStage { .stage(forAffection: affection) }
@@ -194,11 +212,60 @@ nonisolated struct CatState: Codable, Hashable, Sendable {
         return max(0, next.requiredAffection - affection)
     }
 
-    /// 애정도를 더하고, 단계가 올랐으면 새 단계를 돌려준다.
-    mutating func gain(_ action: AffectionAction) -> CatStage? {
+    enum GainResult: Equatable {
+        /// 애정도가 올랐다. 단계가 올랐으면 새 단계.
+        case gained(evolvedTo: CatStage?)
+        /// 오늘 이 행동으로 받을 수 있는 만큼 다 받았다
+        case capped
+    }
+
+    /// 애정도를 더한다. 하루 상한을 넘었으면 더하지 않는다.
+    mutating func gain(_ action: AffectionAction, now: Date = .now) -> GainResult {
+        let day = Self.dayKey(now)
+        var counts = todayKey == day ? (todayCounts ?? [:]) : [:]
+        let used = counts[action.rawValue] ?? 0
+        guard used < action.dailyLimit else { return .capped }
+        counts[action.rawValue] = used + 1
+        todayKey = day
+        todayCounts = counts
+
         let before = stage
         affection += action.points
         let after = stage
-        return after > before ? after : nil
+        return .gained(evolvedTo: after > before ? after : nil)
+    }
+
+    /// 오늘 이 행동으로 애정도를 받은 횟수
+    func usedToday(_ action: AffectionAction, now: Date = .now) -> Int {
+        guard todayKey == Self.dayKey(now) else { return 0 }
+        return todayCounts?[action.rawValue] ?? 0
+    }
+
+    private static func dayKey(_ date: Date) -> String {
+        let parts = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+    }
+
+    // MARK: 성장 기준 변경
+
+    /// 예전 기준(1)의 단계별 애정도
+    private static let balanceV1 = [0, 60, 180, 400, 800, 1_500]
+
+    /// 예전 기준으로 쌓인 애정도를 새 기준으로 옮긴다. 단계와 단계 안 진행률이 그대로 유지된다.
+    /// 이미 옮겼으면 아무것도 하지 않고 false.
+    mutating func rebalanceIfNeeded() -> Bool {
+        guard (balanceVersion ?? 1) < Self.currentBalance else { return false }
+        let old = Self.balanceV1
+        let new = CatStage.allCases.map(\.requiredAffection)
+
+        if affection >= old.last! {
+            // 예전 최종 단계를 넘은 만큼은 마지막 구간 비율로
+            affection = new.last! + (affection - old.last!) * (new.last! - new[new.count - 2]) / (old.last! - old[old.count - 2])
+        } else if let i = (0..<(old.count - 1)).first(where: { affection < old[$0 + 1] }) {
+            let progress = Double(affection - old[i]) / Double(old[i + 1] - old[i])
+            affection = new[i] + Int((Double(new[i + 1] - new[i]) * progress).rounded())
+        }
+        balanceVersion = Self.currentBalance
+        return true
     }
 }

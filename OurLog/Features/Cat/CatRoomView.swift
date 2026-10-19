@@ -179,17 +179,24 @@ struct CatRoomView: View {
             CuteCard(padding: 0) {
                 VStack(spacing: 0) {
                     let actions: [AffectionAction] = [
-                        .addDiary, .visitPlace, .savePlace, .addEvent, .dailyCheckIn,
+                        .addDiary, .visitPlace, .savePlace, .addEvent, .dailyCheckIn, .pet,
                     ]
                     ForEach(Array(actions.enumerated()), id: \.element.rawValue) { index, action in
+                        let used = app.cat.usedToday(action)
+                        let done = used >= action.dailyLimit
                         HStack {
-                            Text(action.label)
-                                .font(.hand(19))
-                                .foregroundStyle(palette.textPrimary)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(action.label)
+                                    .font(.hand(19))
+                                    .foregroundStyle(done ? palette.textSecondary : palette.textPrimary)
+                                Text("하루 \(action.dailyLimit)번 · 오늘 \(used)/\(action.dailyLimit)")
+                                    .font(.hand(14))
+                                    .foregroundStyle(palette.textSecondary)
+                            }
                             Spacer()
-                            Text("+\(action.points)")
+                            Text(done ? "오늘 끝" : "+\(action.points)")
                                 .font(.hand(19, bold: true))
-                                .foregroundStyle(palette.accent)
+                                .foregroundStyle(done ? palette.textSecondary : palette.accent)
                         }
                         .padding(.vertical, 12)
                         .padding(.horizontal, 16)
