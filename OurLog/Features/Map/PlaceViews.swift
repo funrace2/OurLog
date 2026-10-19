@@ -722,10 +722,32 @@ struct SavedPlaceListView: View {
 
     @State private var selectedCategoryID: String?
     @State private var selectedPlace: SavedPlace?
+    /// 마지막으로 고른 정렬을 기억한다 (기본: 최신순)
+    @AppStorage("savedPlaces.sort") private var sort: PlaceSort = .latest
+
+    enum PlaceSort: String, CaseIterable {
+        case latest, nearest
+        var title: String {
+            switch self {
+            case .latest: "최신순"
+            case .nearest: "가까운순"
+            }
+        }
+    }
 
     private var filtered: [SavedPlace] {
         let base = selectedCategoryID.map { id in app.places.filter { $0.categoryID == id } } ?? app.places
-        return base.sorted { $0.createdAt > $1.createdAt }
+        switch sort {
+        case .nearest:
+            // 내 위치를 모르면 가까운순을 할 수 없어서 최신순으로 보여준다
+            guard let me = MyLocation.current else { return base.sorted { $0.createdAt > $1.createdAt } }
+            func distance(_ place: SavedPlace) -> CLLocationDistance {
+                me.distance(from: CLLocation(latitude: place.latitude, longitude: place.longitude))
+            }
+            return base.sorted { distance($0) < distance($1) }
+        case .latest:
+            return base.sorted { $0.createdAt > $1.createdAt }
+        }
     }
 
     var body: some View {
@@ -741,6 +763,19 @@ struct SavedPlaceListView: View {
                                 ForEach(app.categories) { category in
                                     categoryChip(category.id, name: category.name,
                                                  symbol: category.symbol, color: category.color)
+                                }
+                            }
+                            .padding(.horizontal, 20)
+                        }
+
+                        if !app.places.isEmpty {
+                            VStack(alignment: .leading, spacing: 4) {
+                                SketchPicker(selection: $sort, options: PlaceSort.allCases.map { ($0, $0.title) })
+                                if sort == .nearest && MyLocation.current == nil {
+                                    Text("내 위치를 알 수 없어서 최신순으로 보여주고 있어요")
+                                        .font(.hand(14))
+                                        .foregroundStyle(palette.textSecondary)
+                                        .padding(.horizontal, 4)
                                 }
                             }
                             .padding(.horizontal, 20)
