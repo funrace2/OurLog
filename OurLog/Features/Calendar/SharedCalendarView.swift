@@ -13,8 +13,9 @@ struct SharedCalendarView: View {
 
     @State private var visibleMonth = Date.now
     @State private var selectedDate = Date.now
-    @State private var showEditor = false
-    @State private var editingEvent: CalendarEvent?
+    /// 열 편집 화면. "무엇을 열지"를 띄우는 값 자체에 담아야 띄우는 순간 확정된다.
+    /// (따로 두고 동시에 바꾸면 SwiftUI 가 바뀌기 전 값으로 열어서 기존 일정이 "새 일정"으로 열렸다)
+    @State private var editorTarget: EventEditorTarget?
 
     var body: some View {
         NavigationStack {
@@ -35,15 +36,19 @@ struct SharedCalendarView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        editingEvent = nil
-                        showEditor = true
+                        editorTarget = .new(selectedDate)
                     } label: {
                         Image(systemName: "plus")
                     }
                 }
             }
-            .sheet(isPresented: $showEditor) {
-                EventEditorView(event: editingEvent, defaultDate: selectedDate)
+            .sheet(item: $editorTarget) { target in
+                switch target {
+                case .new(let date):
+                    EventEditorView(event: nil, defaultDate: date)
+                case .edit(let event):
+                    EventEditorView(event: event, defaultDate: event.startDate)
+                }
             }
         }
     }
@@ -179,8 +184,7 @@ struct SharedCalendarView: View {
                 title: selectedDate.formatted(.dateTime.month().day().weekday(.wide).locale(Locale(identifier: "ko_KR"))),
                 systemImage: "calendar.badge.clock",
                 action: (title: "일정 추가", handler: {
-                    editingEvent = nil
-                    showEditor = true
+                    editorTarget = .new(selectedDate)
                 })
             )
 
@@ -198,8 +202,7 @@ struct SharedCalendarView: View {
 
                         ForEach(events) { event in
                             Button {
-                                editingEvent = event
-                                showEditor = true
+                                editorTarget = .edit(event)
                             } label: {
                                 EventRow(event: event)
                             }
@@ -208,6 +211,19 @@ struct SharedCalendarView: View {
                     }
                 }
             }
+        }
+    }
+}
+
+/// 일정 편집 화면을 무엇으로 열지
+enum EventEditorTarget: Identifiable {
+    case new(Date)
+    case edit(CalendarEvent)
+
+    var id: String {
+        switch self {
+        case .new(let date): "new-\(date.timeIntervalSince1970)"
+        case .edit(let event): "edit-\(event.id)"
         }
     }
 }

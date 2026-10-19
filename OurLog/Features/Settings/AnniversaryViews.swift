@@ -15,8 +15,8 @@ struct AnniversaryListView: View {
     @Environment(\.palette) private var palette
     @Environment(\.dismiss) private var dismiss
 
-    @State private var showEditor = false
-    @State private var editing: Anniversary?
+    /// 열 편집 화면 (nil 이 아니면 띄운다). 새로 만들기는 .new
+    @State private var editorTarget: AnniversaryEditorTarget?
 
     private var custom: [Anniversary] {
         (app.snapshot?.anniversaries ?? []).sorted { $0.nextOccurrence < $1.nextOccurrence }
@@ -44,8 +44,7 @@ struct AnniversaryListView: View {
                                     VStack(spacing: 0) {
                                         ForEach(Array(custom.enumerated()), id: \.element.id) { index, anniversary in
                                             Button {
-                                                editing = anniversary
-                                                showEditor = true
+                                                editorTarget = .edit(anniversary)
                                             } label: {
                                                 AnniversaryRow(anniversary: anniversary)
                                             }
@@ -95,16 +94,31 @@ struct AnniversaryListView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        editing = nil
-                        showEditor = true
+                        editorTarget = .new
                     } label: {
                         Image(systemName: "plus")
                     }
                 }
             }
-            .sheet(isPresented: $showEditor) {
-                AnniversaryEditorView(anniversary: editing)
+            .sheet(item: $editorTarget) { target in
+                switch target {
+                case .new: AnniversaryEditorView(anniversary: nil)
+                case .edit(let anniversary): AnniversaryEditorView(anniversary: anniversary)
+                }
             }
+        }
+    }
+}
+
+/// 기념일 편집 화면을 무엇으로 열지
+enum AnniversaryEditorTarget: Identifiable {
+    case new
+    case edit(Anniversary)
+
+    var id: String {
+        switch self {
+        case .new: "new"
+        case .edit(let anniversary): "edit-\(anniversary.id)"
         }
     }
 }
