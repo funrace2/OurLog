@@ -23,6 +23,8 @@ struct RootView: View {
                 MainTabView()
             }
         }
+        // 입력칸 바깥을 탭하면 키보드를 닫는다 (앱 창에 한 번 걸어서 시트까지 적용)
+        .background(KeyboardDismissOnTap().allowsHitTesting(false))
         .environment(app)
         .environment(\.palette, app.palette)
         .tint(app.palette.ink)
