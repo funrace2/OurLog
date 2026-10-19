@@ -37,6 +37,28 @@ extension PlaceSearchService {
     func more(_ cursor: PlaceSearchCursor) async throws -> PlaceSearchPage {
         PlaceSearchPage(results: [], next: nil)
     }
+
+    /// 지도에서 누른 가게(이름 + 좌표)를 검색 결과 하나로 바꾼다.
+    /// 그 이름으로 근처를 검색해서, 이름이 맞고 누른 곳에서 가장 가까운(300m 안) 결과를 고른다.
+    func resolve(name: String, at coordinate: CLLocationCoordinate2D) async -> PlaceSearchResult? {
+        guard let page = try? await search(query: name, near: coordinate) else { return nil }
+
+        let tapped = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        let key = Self.normalize(name)
+        return page.results
+            .filter {
+                let candidate = Self.normalize($0.name)
+                return candidate.contains(key) || key.contains(candidate)
+            }
+            .map { ($0, CLLocation(latitude: $0.latitude, longitude: $0.longitude).distance(from: tapped)) }
+            .filter { $0.1 < 300 }
+            .min { $0.1 < $1.1 }?
+            .0
+    }
+
+    private static func normalize(_ text: String) -> String {
+        text.replacingOccurrences(of: " ", with: "").replacingOccurrences(of: "\n", with: "").lowercased()
+    }
 }
 
 // MARK: - 카카오
@@ -61,7 +83,6 @@ final class KakaoPlaceSearchService: PlaceSearchService {
             let x: String
             let y: String
             let place_url: String
-            let distance: String?
         }
         let meta: Meta
         let documents: [Document]
@@ -124,8 +145,7 @@ final class KakaoPlaceSearchService: PlaceSearchService {
                 latitude: lat,
                 longitude: lng,
                 // 카카오맵 장소 페이지 (영업시간·메뉴·리뷰). http 로 와서 https 로 바꾼다.
-                link: doc.place_url.replacingOccurrences(of: "http://", with: "https://"),
-                distance: doc.distance.flatMap(Double.init)
+                link: doc.place_url.replacingOccurrences(of: "http://", with: "https://")
             )
         }
 

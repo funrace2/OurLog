@@ -64,8 +64,8 @@ struct PlacePreviewView: View {
                                     }
                                 }
 
-                                Text([result.distance.map(PlaceFormat.distance), result.address]
-                                    .compactMap { $0 }.joined(separator: " · "))
+                                Text([PlaceFormat.distanceFromMe(to: result.coordinate).map { "내 위치에서 \($0)" }, result.address]
+                                    .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "))
                                     .font(.hand(18))
                                     .foregroundStyle(palette.textSecondary)
 
@@ -400,6 +400,30 @@ enum PlaceFormat {
     /// 350m / 1.2km
     nonisolated static func distance(_ meters: Double) -> String {
         meters < 1000 ? "\(Int(meters.rounded()))m" : String(format: "%.1fkm", meters / 1000)
+    }
+
+    /// 내 위치에서 그곳까지의 거리. 위치 권한이 없거나 아직 위치를 모르면 nil.
+    /// (검색 API 가 주는 거리는 검색 기준점 — 지도 가운데나 누른 자리 — 에서 잰 값이라 쓰지 않는다)
+    static func distanceFromMe(to coordinate: CLLocationCoordinate2D) -> String? {
+        guard let me = MyLocation.current else { return nil }
+        let there = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        return distance(me.distance(from: there))
+    }
+}
+
+/// 폰이 알고 있는 내 현재 위치 (지도가 위치를 받는 동안 계속 새로 고쳐진다)
+enum MyLocation {
+    private static let manager = CLLocationManager()
+
+    static var current: CLLocation? {
+        switch manager.authorizationStatus {
+        case .authorizedWhenInUse, .authorizedAlways:
+            // 너무 오래된 위치(30분 이상)는 거리 표시에 쓰지 않는다
+            guard let location = manager.location, location.timestamp.timeIntervalSinceNow > -1800 else { return nil }
+            return location
+        default:
+            return nil
+        }
     }
 }
 

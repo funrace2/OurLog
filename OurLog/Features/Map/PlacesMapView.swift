@@ -29,6 +29,8 @@ struct PlacesMapView: View {
 
     /// 검색 결과를 눌러 미리 보는 장소 (여기서 저장한다)
     @State private var previewResult: PlaceSearchResult?
+    /// 지도에서 누른 가게 이름 (정보를 찾는 동안 보여준다)
+    @State private var resolvingSymbol: String?
     /// 지도에서 누른 저장된 장소
     @State private var selectedPlace: SavedPlace?
 
@@ -63,6 +65,23 @@ struct PlacesMapView: View {
                         .padding(.top, 108)
                 }
             }
+            .overlay(alignment: .bottom) {
+                if let resolvingSymbol {
+                    HStack(spacing: 8) {
+                        ProgressView().controlSize(.small)
+                        Text("\(resolvingSymbol) 정보 찾는 중…")
+                            .font(.hand(17))
+                            .foregroundStyle(palette.textPrimary)
+                            .lineLimit(1)
+                    }
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 16)
+                    .sketchBox(seed: 91, fill: palette.card, roughness: 1.1, lineWidth: 1.4)
+                    .padding(.bottom, 24)
+                    .transition(.opacity)
+                }
+            }
+            .animation(.easeInOut(duration: 0.2), value: resolvingSymbol)
             .navigationTitle("우리 지도")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -98,7 +117,10 @@ struct PlacesMapView: View {
                 compassTopInset: 112,   // 검색창 + 카테고리 칩 아래
                 onSelectPlace: { selectedPlace = $0 },
                 onSelectResult: { previewResult = $0 },
-                onCenterChange: { center.coordinate = $0 }
+                onCenterChange: { center.coordinate = $0 },
+                onSelectSymbol: { name, coordinate in
+                    Task { await openSymbol(name: name, at: coordinate) }
+                }
             )
             .ignoresSafeArea(edges: .bottom)
         } else {
@@ -210,6 +232,23 @@ struct PlacesMapView: View {
         }
     }
 
+    /// 지도에서 누른 가게를 찾아 미리보기로 연다. 못 찾으면 이름과 위치만으로 연다.
+    private func openSymbol(name: String, at coordinate: CLLocationCoordinate2D) async {
+        guard resolvingSymbol == nil else { return }
+        resolvingSymbol = name
+        defer { resolvingSymbol = nil }
+
+        let found = await searchService.resolve(name: name, at: coordinate)
+        previewResult = found ?? PlaceSearchResult(
+            id: "symbol-\(coordinate.latitude),\(coordinate.longitude)",
+            name: name,
+            address: "",
+            category: "",
+            latitude: coordinate.latitude,
+            longitude: coordinate.longitude
+        )
+    }
+
     private func loadMore() async {
         guard let cursor = searchNext, !isLoadingMore else { return }
         isLoadingMore = true
@@ -247,7 +286,7 @@ struct PlacesMapView: View {
                                 Text(result.name)
                                     .font(.hand(20, bold: true))
                                     .foregroundStyle(palette.textPrimary)
-                                Text([result.distance.map(PlaceFormat.distance), result.category.isEmpty ? nil : result.category, result.address]
+                                Text([PlaceFormat.distanceFromMe(to: result.coordinate), result.category.isEmpty ? nil : result.category, result.address]
                                     .compactMap { $0 }.joined(separator: " · "))
                                     .font(.hand(16))
                                     .foregroundStyle(palette.textSecondary)

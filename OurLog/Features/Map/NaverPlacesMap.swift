@@ -34,6 +34,8 @@ struct NaverPlacesMap: UIViewRepresentable {
     var onSelectPlace: (SavedPlace) -> Void = { _ in }
     var onSelectResult: (PlaceSearchResult) -> Void = { _ in }
     var onCenterChange: (CLLocationCoordinate2D) -> Void = { _ in }
+    /// 지도에 그려진 가게·장소 이름(심볼)을 눌렀을 때. nil 이면 심볼을 눌러도 아무 일도 없다.
+    var onSelectSymbol: ((String, CLLocationCoordinate2D) -> Void)?
 
     @Environment(\.palette) private var palette
 
@@ -50,6 +52,9 @@ struct NaverPlacesMap: UIViewRepresentable {
         let map = naverView.mapView
         map.addCameraDelegate(delegate: context.coordinator)
         map.addOptionDelegate(delegate: context.coordinator)
+        if interactive && onSelectSymbol != nil {
+            map.touchDelegate = context.coordinator
+        }
         map.isScrollGestureEnabled = interactive
         map.isZoomGestureEnabled = interactive
         map.isRotateGestureEnabled = interactive   // 두 손가락으로 돌리기 (나침반을 누르면 북쪽으로 돌아온다)
@@ -100,7 +105,7 @@ struct NaverPlacesMap: UIViewRepresentable {
 
     // MARK: - Coordinator
 
-    final class Coordinator: NSObject, NMFMapViewCameraDelegate, NMFMapViewOptionDelegate, CLLocationManagerDelegate {
+    final class Coordinator: NSObject, NMFMapViewCameraDelegate, NMFMapViewOptionDelegate, NMFMapViewTouchDelegate, CLLocationManagerDelegate {
         var parent: NaverPlacesMap?
         private let locationManager = CLLocationManager()
         private weak var locationMap: NMFMapView?
@@ -249,6 +254,7 @@ struct NaverPlacesMap: UIViewRepresentable {
         }
 
         // NMFMapViewOptionDelegate — 내 위치 버튼으로 모드가 바뀌는 걸 콘솔에 남긴다 (방향 모드 문제 확인용)
+        @objc(mapViewOptionChanged:)
         nonisolated func mapViewOptionChanged(_ mapView: NMFMapView) {
             MainActor.assumeIsolated {
                 let mode = mapView.positionMode
@@ -265,14 +271,30 @@ struct NaverPlacesMap: UIViewRepresentable {
             }
         }
 
+        // NMFMapViewTouchDelegate — 지도에 그려진 가게 이름을 누르면
+        // 선택 구현 함수라 이름이 조금만 달라도 조용히 안 불린다 → Objective-C 이름을 직접 적는다
+        @objc(mapView:didTapSymbol:)
+        nonisolated func mapView(_ mapView: NMFMapView, didTap symbol: NMFSymbol) -> Bool {
+            MainActor.assumeIsolated {
+                guard let onSelectSymbol = parent?.onSelectSymbol else { return false }
+                // 두 줄짜리 이름("스타벅스\n성수점")은 한 줄로
+                let name = symbol.caption.replacingOccurrences(of: "\n", with: " ").trimmingCharacters(in: .whitespaces)
+                guard !name.isEmpty else { return false }
+                onSelectSymbol(name, CLLocationCoordinate2D(latitude: symbol.position.lat, longitude: symbol.position.lng))
+                return true
+            }
+        }
+
         // NMFMapViewCameraDelegate — 지도 콜백은 메인 스레드에서 온다
 
+        @objc(mapView:cameraWillChangeByReason:animated:)
         nonisolated func mapView(_ mapView: NMFMapView, cameraWillChangeByReason reason: Int, animated: Bool) {
             MainActor.assumeIsolated {
                 if reason == NMFMapChangedByGesture { userMovedMap = true }
             }
         }
 
+        @objc(mapViewCameraIdle:)
         nonisolated func mapViewCameraIdle(_ mapView: NMFMapView) {
             MainActor.assumeIsolated {
                 let target = mapView.cameraPosition.target
