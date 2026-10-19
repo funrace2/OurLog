@@ -235,6 +235,15 @@ nonisolated struct CatState: Codable, Hashable, Sendable {
         return .gained(evolvedTo: after > before ? after : nil)
     }
 
+    /// 애정도 없이 "오늘 했음"만 남긴다 (예전 기록과 맞출 때)
+    mutating func markUsedToday(_ action: AffectionAction, now: Date = .now) {
+        let day = Self.dayKey(now)
+        var counts = todayKey == day ? (todayCounts ?? [:]) : [:]
+        counts[action.rawValue] = max(counts[action.rawValue] ?? 0, 1)
+        todayKey = day
+        todayCounts = counts
+    }
+
     /// 오늘 이 행동으로 애정도를 받은 횟수
     func usedToday(_ action: AffectionAction, now: Date = .now) -> Int {
         guard todayKey == Self.dayKey(now) else { return 0 }

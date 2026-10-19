@@ -290,14 +290,22 @@ final class AppState {
         await save(couple)
     }
 
-    /// 하루에 한 번 출석 애정도.
-    private func checkInIfNeeded() async {
-        guard var couple else { return }
-        let cal = Calendar.dday
-        if let last = couple.cat.lastCheckIn, cal.isDateInToday(last) { return }
+    /// 하루에 한 번 출석 애정도 — 그날 둘 중 누군가 처음 앱을 열(거나 다시 앞으로 가져올) 때.
+    /// 하루 상한(오늘 받은 횟수)이 기준이다.
+    func checkInIfNeeded() async {
+        guard phase == .ready, var couple else { return }
 
-        couple.cat.lastCheckIn = .now
+        // 예전 방식(마지막 출석 날짜)으로 오늘 이미 출석했는데 오늘 횟수에는 안 남은 경우:
+        // 애정도는 주지 않고 "오늘 했음"만 맞춰 둔다.
+        if let last = couple.cat.lastCheckIn, Calendar.dday.isDateInToday(last),
+           couple.cat.usedToday(.dailyCheckIn) == 0 {
+            couple.cat.markUsedToday(.dailyCheckIn)
+            await save(couple)
+            return
+        }
+
         guard case .gained(let evolved) = couple.cat.gain(.dailyCheckIn) else { return }
+        couple.cat.lastCheckIn = .now
         await save(couple)
 
         if let evolved {

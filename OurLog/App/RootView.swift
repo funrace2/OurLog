@@ -9,6 +9,7 @@ import SwiftUI
 
 struct RootView: View {
     @State private var app = AppEnvironment.makeAppState()
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         ZStack {
@@ -52,6 +53,12 @@ struct RootView: View {
             Text(app.errorMessage ?? "")
         }
         .task { await app.bootstrap() }
+        // 백그라운드에 둔 채 날짜가 바뀌어도, 다시 열면 그날 출석이 된다
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                Task { await app.checkInIfNeeded() }
+            }
+        }
         .onChange(of: app.toast) { _, newValue in
             // 토스트는 잠깐 떴다가 알아서 사라진다.
             guard let newValue else { return }
