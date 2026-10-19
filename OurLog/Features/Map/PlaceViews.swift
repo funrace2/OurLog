@@ -2,16 +2,145 @@
 //  PlaceViews.swift
 //  OurLog
 //
-//  장소 저장 / 상세 / 목록.
+//  장소 미리보기(저장 전) / 저장 / 상세(저장 후) / 목록.
+//  흐름: 검색 결과 → 미리보기(사진·후기 확인) → 저장(카테고리·메모) → 상세
 //
 
 import SwiftUI
 import MapKit
 
-// MARK: - 저장하기
+// MARK: - 미리보기 (검색 결과, 저장 전)
+
+struct PlacePreviewView: View {
+    let result: PlaceSearchResult
+
+    @Environment(AppState.self) private var app
+    @Environment(\.palette) private var palette
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var info: PlaceInfo
+    @State private var isLoadingInfo: Bool
+    @State private var showSave = false
+    @State private var openedPhoto: PlacePhoto?
+    @State private var webPage: WebPage?
+    @State private var savedToOpen: SavedPlace?
+
+    init(result: PlaceSearchResult) {
+        self.result = result
+        let cached = PlaceInfoService.shared.cachedInfo(for: result.lookup)
+        _info = State(initialValue: cached ?? PlaceInfo())
+        _isLoadingInfo = State(initialValue: cached == nil && PlaceInfoService.isAvailable)
+    }
+
+    /// 이미 저장한 곳인지 (이름이 같고 100m 안)
+    private var alreadySaved: SavedPlace? {
+        let here = CLLocation(latitude: result.latitude, longitude: result.longitude)
+        return app.places.first {
+            $0.name == result.name
+                && CLLocation(latitude: $0.latitude, longitude: $0.longitude).distance(from: here) < 100
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                CuteBackground()
+
+                ScrollView {
+                    VStack(spacing: 16) {
+                        PlacePhotoStrip(photos: info.photos, isLoading: isLoadingInfo) { openedPhoto = $0 }
+
+                        PlaceMapPreview(result: result)
+
+                        CuteCard {
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack(alignment: .firstTextBaseline) {
+                                    Text(result.name)
+                                        .font(.hand(27, bold: true))
+                                        .foregroundStyle(palette.textPrimary)
+                                    Spacer()
+                                    if !result.category.isEmpty {
+                                        Chip(text: result.category)
+                                    }
+                                }
+
+                                Text([result.distance.map(PlaceFormat.distance), result.address]
+                                    .compactMap { $0 }.joined(separator: " · "))
+                                    .font(.hand(18))
+                                    .foregroundStyle(palette.textSecondary)
+
+                                if let link = result.link, let url = URL(string: link) {
+                                    PlaceLinkButton(url: url) { webPage = WebPage(url: url) }
+                                }
+                            }
+                        }
+
+                        PlaceReviewsSection(posts: info.posts) { webPage = WebPage(url: $0) }
+
+                        if let saved = alreadySaved {
+                            VStack(spacing: 8) {
+                                Text("이미 저장한 장소예요")
+                                    .font(.hand(17))
+                                    .foregroundStyle(palette.textSecondary)
+                                Button {
+                                    savedToOpen = saved
+                                } label: {
+                                    Label("저장된 장소 열기", systemImage: "bookmark.fill")
+                                }
+                                .buttonStyle(.soft)
+                            }
+                        } else {
+                            Button {
+                                showSave = true
+                            } label: {
+                                Label("이 장소 저장하기", systemImage: "plus")
+                            }
+                            .buttonStyle(.soft)
+                        }
+
+                        PlaceActionButtons(
+                            lookup: result.lookup,
+                            name: result.name,
+                            coordinate: result.coordinate,
+                            openWeb: { webPage = WebPage(url: $0) }
+                        )
+                    }
+                    .padding(20)
+                }
+            }
+            .navigationTitle("장소 미리보기")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("닫기") { dismiss() }
+                }
+            }
+            // 저장이 끝나면 미리보기까지 한 번에 닫는다
+            .sheet(isPresented: $showSave) {
+                SavePlaceView(result: result, onSaved: { dismiss() })
+            }
+            .sheet(item: $savedToOpen) { PlaceDetailView(place: $0) }
+            .sheet(item: $webPage) { page in
+                SafariView(url: page.url).ignoresSafeArea()
+            }
+            .fullScreenCover(item: $openedPhoto) { photo in
+                PhotoViewer(photos: info.photos, selection: photo)
+            }
+            .task {
+                guard isLoadingInfo else { return }
+                info = await PlaceInfoService.shared.info(for: result.lookup)
+                isLoadingInfo = false
+            }
+        }
+    }
+}
+
+// MARK: - 저장하기 (카테고리 · 메모)
 
 struct SavePlaceView: View {
     let result: PlaceSearchResult
+    /// 저장 후 부를 것. 있으면 이 화면을 직접 닫지 않고 부른 쪽에 맡긴다 (미리보기까지 한 번에 닫으려고).
+    var onSaved: (() -> Void)?
 
     @Environment(AppState.self) private var app
     @Environment(\.palette) private var palette
@@ -27,19 +156,16 @@ struct SavePlaceView: View {
 
                 ScrollView {
                     VStack(spacing: 16) {
-                        CuteCard {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(result.name)
-                                    .font(.hand(26, bold: true))
-                                    .foregroundStyle(palette.textPrimary)
-                                Text(result.address)
-                                    .font(.hand(18))
-                                    .foregroundStyle(palette.textSecondary)
-                                if !result.category.isEmpty {
-                                    Chip(text: result.category).padding(.top, 4)
-                                }
-                            }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(result.name)
+                                .font(.hand(24, bold: true))
+                                .foregroundStyle(palette.textPrimary)
+                            Text(result.address)
+                                .font(.hand(16))
+                                .foregroundStyle(palette.textSecondary)
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 4)
 
                         CategoryPicker(selection: $categoryID)
 
@@ -83,7 +209,11 @@ struct SavePlaceView: View {
             link: result.link
         )
         Task { await app.addPlace(place) }
-        dismiss()
+        if let onSaved {
+            onSaved()
+        } else {
+            dismiss()
+        }
     }
 }
 
@@ -134,7 +264,7 @@ struct CategoryPicker: View {
     }
 }
 
-// MARK: - 상세
+// MARK: - 상세 (저장한 장소)
 
 struct PlaceDetailView: View {
     let place: SavedPlace
@@ -144,10 +274,18 @@ struct PlaceDetailView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var showDeleteConfirm = false
-    @State private var info = PlaceInfo()
-    @State private var isLoadingInfo = PlaceInfoService.isAvailable
+    @State private var info: PlaceInfo
+    @State private var isLoadingInfo: Bool
     @State private var openedPhoto: PlacePhoto?
     @State private var webPage: WebPage?
+
+    init(place: SavedPlace) {
+        self.place = place
+        // 미리보기에서 이미 받아 둔 사진·후기가 있으면 바로 쓴다
+        let cached = PlaceInfoService.shared.cachedInfo(for: place.lookup)
+        _info = State(initialValue: cached ?? PlaceInfo())
+        _isLoadingInfo = State(initialValue: cached == nil && PlaceInfoService.isAvailable)
+    }
 
     var body: some View {
         NavigationStack {
@@ -156,16 +294,13 @@ struct PlaceDetailView: View {
 
                 ScrollView {
                     VStack(spacing: 16) {
-                        photoStrip
+                        PlacePhotoStrip(photos: info.photos, isLoading: isLoadingInfo) { openedPhoto = $0 }
 
-                        placePreviewMap
-                            .frame(height: 150)
-                            .clipShape(.rect(cornerRadius: 6))
-                            .sketchBox(seed: sketchSeed(place.id), fill: .clear)
-                            .allowsHitTesting(false)
+                        PlaceMapPreview(place: place)
 
                         infoCard
-                        reviewsSection
+
+                        PlaceReviewsSection(posts: info.posts) { webPage = WebPage(url: $0) }
 
                         Button {
                             Task { await app.toggleVisited(place) }
@@ -178,21 +313,12 @@ struct PlaceDetailView: View {
                         }
                         .buttonStyle(place.isVisited ? .softTinted : .soft)
 
-                        if AppEnvironment.useNaverMaps {
-                            Button {
-                                openNaverPlacePage()
-                            } label: {
-                                Label("네이버 지도에서 자세히 보기", systemImage: "info.circle")
-                            }
-                            .buttonStyle(.softTinted)
-                        }
-
-                        Button {
-                            openInMaps()
-                        } label: {
-                            Label("길찾기", systemImage: "arrow.triangle.turn.up.right.circle.fill")
-                        }
-                        .buttonStyle(.softTinted)
+                        PlaceActionButtons(
+                            lookup: place.lookup,
+                            name: place.name,
+                            coordinate: place.coordinate,
+                            openWeb: { webPage = WebPage(url: $0) }
+                        )
 
                         Button("삭제", role: .destructive) { showDeleteConfirm = true }
                             .buttonStyle(.softPlain)
@@ -221,55 +347,12 @@ struct PlaceDetailView: View {
                 PhotoViewer(photos: info.photos, selection: photo)
             }
             .task {
-                guard PlaceInfoService.isAvailable else { return }
-                info = await PlaceInfoService.shared.info(for: place)
+                guard isLoadingInfo else { return }
+                info = await PlaceInfoService.shared.info(for: place.lookup)
                 isLoadingInfo = false
             }
         }
     }
-
-    // MARK: 사진
-
-    @ViewBuilder
-    private var photoStrip: some View {
-        if isLoadingInfo {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(0..<3, id: \.self) { index in
-                        palette.paperDeep
-                            .frame(width: 130, height: 160)
-                            .sketchBox(seed: UInt64(index) &+ 440, fill: .clear, roughness: 1.2, lineWidth: 1.6)
-                    }
-                }
-                .padding(.horizontal, 2)
-            }
-            .redacted(reason: .placeholder)
-        } else if !info.photos.isEmpty {
-            VStack(alignment: .leading, spacing: 6) {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(spacing: 10) {
-                        ForEach(Array(info.photos.enumerated()), id: \.element.id) { index, photo in
-                            Button {
-                                openedPhoto = photo
-                            } label: {
-                                RemoteImage(url: photo.url, maxPixel: 600)
-                                    .frame(width: 130, height: 160)
-                                    .clipped()
-                                    .sketchBox(seed: UInt64(index) &+ 440, fill: .clear, roughness: 1.2, lineWidth: 1.6)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.horizontal, 2)
-                }
-                Text("네이버 검색에서 찾은 사진이라 다른 곳이 섞여 있을 수 있어요")
-                    .font(.hand(14))
-                    .foregroundStyle(palette.textSecondary)
-            }
-        }
-    }
-
-    // MARK: 정보
 
     private var infoCard: some View {
         CuteCard {
@@ -289,14 +372,7 @@ struct PlaceDetailView: View {
                     .foregroundStyle(palette.textSecondary)
 
                 if let link = place.link, let url = URL(string: link) {
-                    Button {
-                        webPage = WebPage(url: url)
-                    } label: {
-                        Label(Self.linkTitle(url), systemImage: "link")
-                            .font(.hand(18, bold: true))
-                            .foregroundStyle(palette.pen)
-                    }
-                    .buttonStyle(.plain)
+                    PlaceLinkButton(url: url) { webPage = WebPage(url: url) }
                 }
 
                 if !place.memo.isEmpty {
@@ -316,35 +392,85 @@ struct PlaceDetailView: View {
             }
         }
     }
+}
 
-    /// 링크 종류에 맞는 버튼 이름
-    private static func linkTitle(_ url: URL) -> String {
-        let host = url.host() ?? ""
-        if host.contains("place.map.kakao") { return "카카오맵 정보 (영업시간·메뉴·리뷰)" }
-        if host.contains("instagram") { return "인스타그램" }
-        if host.contains("blog.naver") { return "블로그" }
-        return "홈페이지"
+// MARK: - 공용 부품
+
+enum PlaceFormat {
+    /// 350m / 1.2km
+    nonisolated static func distance(_ meters: Double) -> String {
+        meters < 1000 ? "\(Int(meters.rounded()))m" : String(format: "%.1fkm", meters / 1000)
     }
+}
 
-    // MARK: 후기
+/// 가로로 넘기는 사진 줄. 받는 동안은 빈 칸을 보여준다.
+struct PlacePhotoStrip: View {
+    let photos: [PlacePhoto]
+    let isLoading: Bool
+    let onOpen: (PlacePhoto) -> Void
 
-    @ViewBuilder
-    private var reviewsSection: some View {
-        if !info.posts.isEmpty {
+    @Environment(\.palette) private var palette
+
+    var body: some View {
+        if isLoading {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(0..<3, id: \.self) { index in
+                        palette.paperDeep
+                            .frame(width: 130, height: 160)
+                            .sketchBox(seed: UInt64(index) &+ 440, fill: .clear, roughness: 1.2, lineWidth: 1.6)
+                    }
+                }
+                .padding(.horizontal, 2)
+            }
+            .redacted(reason: .placeholder)
+        } else if !photos.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(spacing: 10) {
+                        ForEach(Array(photos.enumerated()), id: \.element.id) { index, photo in
+                            Button {
+                                onOpen(photo)
+                            } label: {
+                                RemoteImage(url: photo.url, maxPixel: 600)
+                                    .frame(width: 130, height: 160)
+                                    .clipped()
+                                    .sketchBox(seed: UInt64(index) &+ 440, fill: .clear, roughness: 1.2, lineWidth: 1.6)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, 2)
+                }
+                Text("네이버 검색에서 찾은 사진이라 다른 곳이 섞여 있을 수 있어요")
+                    .font(.hand(14))
+                    .foregroundStyle(palette.textSecondary)
+            }
+        }
+    }
+}
+
+/// 블로그 후기 목록
+struct PlaceReviewsSection: View {
+    let posts: [BlogPost]
+    let onOpen: (URL) -> Void
+
+    var body: some View {
+        if !posts.isEmpty {
             VStack(spacing: 10) {
                 SectionHeader(title: "블로그 후기")
 
                 CuteCard(padding: 0) {
                     VStack(spacing: 0) {
-                        ForEach(Array(info.posts.enumerated()), id: \.element.id) { index, post in
+                        ForEach(Array(posts.enumerated()), id: \.element.id) { index, post in
                             Button {
-                                webPage = WebPage(url: post.url)
+                                onOpen(post.url)
                             } label: {
                                 BlogPostRow(post: post)
                             }
                             .buttonStyle(.plain)
 
-                            if index < info.posts.count - 1 {
+                            if index < posts.count - 1 {
                                 SketchDivider(seed: UInt64(index) &+ 80)
                                     .padding(.horizontal, 12)
                             }
@@ -354,51 +480,142 @@ struct PlaceDetailView: View {
             }
         }
     }
+}
 
-    // MARK: 네이버 지도
+/// 손으로 움직일 수 없는 작은 지도
+struct PlaceMapPreview: View {
+    private enum Pin {
+        case saved(SavedPlace)
+        case result(PlaceSearchResult)
+    }
 
-    private func openNaverPlacePage() {
-        let query = PlaceInfoService.query(for: place)
-        let web = NaverMapLink.searchWebURL(query: query)
-        guard let appURL = NaverMapLink.searchAppURL(query: query) else {
-            if let web { webPage = WebPage(url: web) }
-            return
-        }
-        UIApplication.shared.open(appURL) { opened in
-            if !opened, let web { webPage = WebPage(url: web) }
+    private let pin: Pin
+
+    init(place: SavedPlace) { pin = .saved(place) }
+    init(result: PlaceSearchResult) { pin = .result(result) }
+
+    @Environment(AppState.self) private var app
+    @Environment(\.palette) private var palette
+
+    private var coordinate: CLLocationCoordinate2D {
+        switch pin {
+        case .saved(let place): place.coordinate
+        case .result(let result): result.coordinate
         }
     }
 
+    var body: some View {
+        map
+            .frame(height: 150)
+            .clipShape(.rect(cornerRadius: 6))
+            .sketchBox(seed: sketchSeed("\(coordinate.latitude),\(coordinate.longitude)"), fill: .clear)
+            .allowsHitTesting(false)
+    }
+
     @ViewBuilder
-    private var placePreviewMap: some View {
+    private var map: some View {
         if AppEnvironment.useNaverMaps {
-            NaverPlacesMap(
-                places: [place],
-                categoryFor: { app.category(id: $0) },
-                focus: MapFocus(coordinate: place.coordinate, zoom: 16),
-                interactive: false
-            )
+            switch pin {
+            case .saved(let place):
+                NaverPlacesMap(places: [place], categoryFor: { app.category(id: $0) },
+                               focus: MapFocus(coordinate: coordinate, zoom: 16), interactive: false)
+            case .result(let result):
+                NaverPlacesMap(places: [], searchResults: [result], categoryFor: { app.category(id: $0) },
+                               focus: MapFocus(coordinate: coordinate, zoom: 16), interactive: false)
+            }
         } else {
-            Map(initialPosition: .region(MKCoordinateRegion(
-                center: place.coordinate,
-                latitudinalMeters: 600,
-                longitudinalMeters: 600
-            ))) {
-                Annotation(place.name, coordinate: place.coordinate) {
-                    PlacePin(category: app.category(id: place.categoryID), isVisited: place.isVisited)
+            Map(initialPosition: .region(MKCoordinateRegion(center: coordinate, latitudinalMeters: 600, longitudinalMeters: 600))) {
+                switch pin {
+                case .saved(let place):
+                    Annotation(place.name, coordinate: coordinate) {
+                        PlacePin(category: app.category(id: place.categoryID), isVisited: place.isVisited)
+                    }
+                case .result(let result):
+                    Annotation(result.name, coordinate: coordinate) {
+                        Image(systemName: "mappin.circle.fill")
+                            .font(.system(size: 26))
+                            .foregroundStyle(palette.pen)
+                    }
                 }
             }
         }
     }
+}
+
+/// 가게 링크 (카카오맵 정보 / 인스타그램 / 홈페이지)
+struct PlaceLinkButton: View {
+    let url: URL
+    let onOpen: () -> Void
+
+    @Environment(\.palette) private var palette
+
+    var body: some View {
+        Button(action: onOpen) {
+            Label(Self.title(for: url), systemImage: "link")
+                .font(.hand(18, bold: true))
+                .foregroundStyle(palette.pen)
+        }
+        .buttonStyle(.plain)
+    }
+
+    static func title(for url: URL) -> String {
+        let host = url.host() ?? ""
+        if host.contains("place.map.kakao") { return "카카오맵 정보 (영업시간·메뉴·리뷰)" }
+        if host.contains("instagram") { return "인스타그램" }
+        if host.contains("blog.naver") { return "블로그" }
+        return "홈페이지"
+    }
+}
+
+/// 네이버 지도에서 자세히 보기 + 길찾기
+struct PlaceActionButtons: View {
+    let lookup: PlaceLookup
+    let name: String
+    let coordinate: CLLocationCoordinate2D
+    /// 앱이 없을 때 웹페이지를 앱 안에서 연다
+    let openWeb: (URL) -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            if AppEnvironment.useNaverMaps {
+                Button {
+                    openNaverPlacePage()
+                } label: {
+                    Label("네이버 지도에서 자세히 보기", systemImage: "info.circle")
+                }
+                .buttonStyle(.softTinted)
+            }
+
+            Button {
+                openDirections()
+            } label: {
+                Label("길찾기", systemImage: "arrow.triangle.turn.up.right.circle.fill")
+            }
+            .buttonStyle(.softTinted)
+        }
+    }
+
+    /// 네이버 지도 앱이 있으면 앱에서, 없으면 웹페이지로 검색
+    private func openNaverPlacePage() {
+        let query = PlaceInfoService.query(for: lookup)
+        let web = NaverMapLink.searchWebURL(query: query)
+        guard let appURL = NaverMapLink.searchAppURL(query: query) else {
+            if let web { openWeb(web) }
+            return
+        }
+        UIApplication.shared.open(appURL) { opened in
+            if !opened, let web { openWeb(web) }
+        }
+    }
 
     /// 네이버 지도 앱이 있으면 거기서, 없으면 Apple 지도에서 연다.
-    private func openInMaps() {
+    private func openDirections() {
         let openApple = {
-            let item = MKMapItem(placemark: MKPlacemark(coordinate: place.coordinate))
-            item.name = place.name
+            let item = MKMapItem(placemark: MKPlacemark(coordinate: coordinate))
+            item.name = name
             item.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving])
         }
-        guard let url = NaverMapLink.placeURL(name: place.name, coordinate: place.coordinate) else {
+        guard let url = NaverMapLink.placeURL(name: name, coordinate: coordinate) else {
             openApple()
             return
         }

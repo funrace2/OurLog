@@ -27,8 +27,8 @@ struct PlacesMapView: View {
     @State private var selectedCategoryID: String?
     @State private var showList = false
 
-    /// 검색 결과를 눌러 저장하려는 장소
-    @State private var placeToSave: PlaceSearchResult?
+    /// 검색 결과를 눌러 미리 보는 장소 (여기서 저장한다)
+    @State private var previewResult: PlaceSearchResult?
     /// 지도에서 누른 저장된 장소
     @State private var selectedPlace: SavedPlace?
 
@@ -75,8 +75,8 @@ struct PlacesMapView: View {
             .sheet(isPresented: $showList) {
                 SavedPlaceListView()
             }
-            .sheet(item: $placeToSave) { result in
-                SavePlaceView(result: result)
+            .sheet(item: $previewResult) { result in
+                PlacePreviewView(result: result)
             }
             .sheet(item: $selectedPlace) { place in
                 PlaceDetailView(place: place)
@@ -97,7 +97,7 @@ struct PlacesMapView: View {
                 showsMyLocation: true,
                 compassTopInset: 112,   // 검색창 + 카테고리 칩 아래
                 onSelectPlace: { selectedPlace = $0 },
-                onSelectResult: { placeToSave = $0 },
+                onSelectResult: { previewResult = $0 },
                 onCenterChange: { center.coordinate = $0 }
             )
             .ignoresSafeArea(edges: .bottom)
@@ -126,7 +126,7 @@ struct PlacesMapView: View {
                         Image(systemName: "mappin.circle.fill")
                             .font(.system(size: 26))
                             .foregroundStyle(palette.accent)
-                            .onTapGesture { placeToSave = result }
+                            .onTapGesture { previewResult = result }
                     }
                 }
             }
@@ -226,11 +226,6 @@ struct PlacesMapView: View {
         }
     }
 
-    /// 350m / 1.2km
-    private nonisolated static func distanceText(_ meters: Double) -> String {
-        meters < 1000 ? "\(Int(meters.rounded()))m" : String(format: "%.1fkm", meters / 1000)
-    }
-
     private var searchResultList: some View {
         ScrollView {
             VStack(spacing: 0) {
@@ -245,23 +240,23 @@ struct PlacesMapView: View {
 
                 ForEach(searchResults) { result in
                     Button {
-                        placeToSave = result
+                        previewResult = result
                     } label: {
                         HStack(spacing: 10) {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(result.name)
                                     .font(.hand(20, bold: true))
                                     .foregroundStyle(palette.textPrimary)
-                                Text([result.distance.map(Self.distanceText), result.category.isEmpty ? nil : result.category, result.address]
+                                Text([result.distance.map(PlaceFormat.distance), result.category.isEmpty ? nil : result.category, result.address]
                                     .compactMap { $0 }.joined(separator: " · "))
                                     .font(.hand(16))
                                     .foregroundStyle(palette.textSecondary)
                                     .lineLimit(1)
                             }
                             Spacer()
-                            Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 20))
-                                .foregroundStyle(palette.primary)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundStyle(palette.textSecondary)
                         }
                         .padding(.vertical, 12)
                         .padding(.horizontal, 16)

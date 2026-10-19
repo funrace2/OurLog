@@ -26,6 +26,22 @@ nonisolated struct BlogPost: Identifiable, Hashable, Sendable {
     var id: URL { url }
 }
 
+/// 사진·후기를 찾을 장소. 저장 전(검색 결과)이든 저장 후든 이름과 주소만 있으면 된다.
+nonisolated struct PlaceLookup: Sendable {
+    let name: String
+    let address: String
+    /// 같은 가게면 저장 전후로 캐시를 같이 쓴다
+    var key: String { "\(name)|\(address)" }
+}
+
+extension SavedPlace {
+    nonisolated var lookup: PlaceLookup { PlaceLookup(name: name, address: address) }
+}
+
+extension PlaceSearchResult {
+    nonisolated var lookup: PlaceLookup { PlaceLookup(name: name, address: address) }
+}
+
 nonisolated struct PlaceInfo: Sendable {
     var photos: [PlacePhoto] = []
     var posts: [BlogPost] = []
@@ -40,8 +56,13 @@ final class PlaceInfoService {
 
     static var isAvailable: Bool { NaverKeys.hasSearchKey }
 
-    func info(for place: SavedPlace) async -> PlaceInfo {
-        if let cached = cache[place.id] { return cached }
+    /// 이미 받아 둔 게 있으면 바로 돌려준다 (화면을 열자마자 빈 칸 없이 보여주려고)
+    func cachedInfo(for place: PlaceLookup) -> PlaceInfo? {
+        cache[place.key]
+    }
+
+    func info(for place: PlaceLookup) async -> PlaceInfo {
+        if let cached = cache[place.key] { return cached }
         guard Self.isAvailable else { return PlaceInfo() }
 
         let strategies = Self.strategies(for: place)
@@ -50,7 +71,7 @@ final class PlaceInfoService {
         let info = PlaceInfo(photos: await photos, posts: await posts)
         // 둘 다 실패(네트워크 등)했으면 캐시하지 않아 다음에 다시 시도한다
         if !info.photos.isEmpty || !info.posts.isEmpty {
-            cache[place.id] = info
+            cache[place.key] = info
         }
         return info
     }
@@ -66,7 +87,7 @@ final class PlaceInfoService {
     /// 1) 이름 전체 + 지역 (원래 방식 — 네이버로 저장한 장소는 대부분 이걸로 잘 찾는다)
     /// 2) 핵심 단어 + 지역 (카카오가 "브루크 성수"처럼 지역을 붙인 이름일 때 보충)
     /// 앞에서 다 채우면 뒤는 부르지 않는다. 이름이 한 단어면 둘이 같아서 한 번만 검색한다.
-    private static func strategies(for place: SavedPlace) -> [Strategy] {
+    private static func strategies(for place: PlaceLookup) -> [Strategy] {
         let area = area(of: place)
         let full = Strategy(query: join(place.name, area), name: fullName(place.name))
         let core = Strategy(query: join(coreName(place.name), area), name: coreName(place.name))
@@ -74,12 +95,12 @@ final class PlaceInfoService {
     }
 
     /// 네이버 지도에서 열 때 쓰는 검색어 (이름 전체 + 지역)
-    static func query(for place: SavedPlace) -> String {
+    static func query(for place: PlaceLookup) -> String {
         join(place.name, area(of: place))
     }
 
     /// 도로명 주소에는 동 이름이 없어서 동이 없으면 구·군 단위로 붙인다.
-    private static func area(of place: SavedPlace) -> String? {
+    private static func area(of place: PlaceLookup) -> String? {
         // 건물 동 번호("101동")가 지역으로 잡히지 않게 숫자로 시작하는 건 뺀다
         let tokens = place.address.split(separator: " ").map(String.init).filter { !($0.first?.isNumber ?? true) }
         return tokens.first { $0.hasSuffix("동") || ($0.hasSuffix("가") && $0.contains("동")) }
