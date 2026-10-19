@@ -446,38 +446,11 @@ struct DiaryEditorView: View {
     // MARK: 장소
 
     private var placeSection: some View {
-        CuteCard {
-            VStack(alignment: .leading, spacing: 10) {
-                fieldLabel("어디에서? (선택)")
-
-                if app.places.isEmpty {
-                    Text("지도에서 장소를 저장하면 여기에 연결할 수 있어요")
-                        .font(.hand(16))
-                        .foregroundStyle(palette.textSecondary)
-                } else {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(app.places) { place in
-                                let isSelected = placeID == place.id
-                                Button {
-                                    placeID = isSelected ? nil : place.id
-                                } label: {
-                                    Text(place.name)
-                                        .font(.hand(18, bold: true))
-                                        .foregroundStyle(palette.textPrimary)
-                                        .lineLimit(1)
-                                        .padding(.vertical, 8)
-                                        .padding(.horizontal, 12)
-                                        .sketchBox(seed: sketchSeed(place.id), fill: isSelected ? palette.primarySoft : palette.card, roughness: 1.1, lineWidth: isSelected ? 2.4 : 1.3)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                        .padding(.horizontal, 1)
-                    }
-                }
-            }
-        }
+        PlaceLinkField(
+            title: "어디에서? (선택)",
+            emptyMessage: "지도에서 장소를 저장하면 여기에 연결할 수 있어요",
+            placeID: $placeID
+        )
     }
 
     private func fieldLabel(_ text: String) -> some View {
