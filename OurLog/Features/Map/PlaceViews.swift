@@ -267,20 +267,27 @@ struct CategoryPicker: View {
 // MARK: - 상세 (저장한 장소)
 
 struct PlaceDetailView: View {
-    let place: SavedPlace
+    /// 열 때 받은 장소. 화면에는 아래 place(최신 저장 정보)를 쓴다.
+    private let opened: SavedPlace
 
     @Environment(AppState.self) private var app
+
+    /// 수정하거나 상대방이 바꾸면 바로 반영되도록 늘 최신 저장 정보를 읽는다
+    private var place: SavedPlace {
+        app.places.first { $0.id == opened.id } ?? opened
+    }
     @Environment(\.palette) private var palette
     @Environment(\.dismiss) private var dismiss
 
     @State private var showDeleteConfirm = false
+    @State private var showEdit = false
     @State private var info: PlaceInfo
     @State private var isLoadingInfo: Bool
     @State private var openedPhoto: PlacePhoto?
     @State private var webPage: WebPage?
 
     init(place: SavedPlace) {
-        self.place = place
+        self.opened = place
         // 미리보기에서 이미 받아 둔 사진·후기가 있으면 바로 쓴다
         let cached = PlaceInfoService.shared.cachedInfo(for: place.lookup)
         _info = State(initialValue: cached ?? PlaceInfo())
@@ -330,9 +337,15 @@ struct PlaceDetailView: View {
             .navigationTitle("장소")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("수정") { showEdit = true }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("닫기") { dismiss() }
                 }
+            }
+            .sheet(isPresented: $showEdit) {
+                EditPlaceView(place: place)
             }
             .confirmationDialog("이 장소를 삭제할까요?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
                 Button("삭제", role: .destructive) {
@@ -392,6 +405,80 @@ struct PlaceDetailView: View {
                     .padding(.top, 4)
             }
         }
+    }
+}
+
+// MARK: - 수정 (카테고리 · 메모)
+
+struct EditPlaceView: View {
+    let place: SavedPlace
+
+    @Environment(AppState.self) private var app
+    @Environment(\.palette) private var palette
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var categoryID: String
+    @State private var memo: String
+
+    init(place: SavedPlace) {
+        self.place = place
+        _categoryID = State(initialValue: place.categoryID)
+        _memo = State(initialValue: place.memo)
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                CuteBackground()
+
+                ScrollView {
+                    VStack(spacing: 16) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(place.name)
+                                .font(.hand(24, bold: true))
+                                .foregroundStyle(palette.textPrimary)
+                            Text(place.address)
+                                .font(.hand(16))
+                                .foregroundStyle(palette.textSecondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 4)
+
+                        CategoryPicker(selection: $categoryID)
+
+                        CuteCard {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("메모")
+                                    .font(.hand(18, bold: true))
+                                    .foregroundStyle(palette.textSecondary)
+                                TextField("여기 왜 가고 싶은지 적어두면 좋아요", text: $memo, axis: .vertical)
+                                    .font(.hand(20))
+                                    .lineLimit(3...8)
+                            }
+                        }
+
+                        Button("저장하기") { save() }
+                            .buttonStyle(.soft)
+                    }
+                    .padding(20)
+                }
+            }
+            .navigationTitle("장소 수정")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("취소") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func save() {
+        var updated = place
+        updated.categoryID = categoryID
+        updated.memo = memo.trimmingCharacters(in: .whitespacesAndNewlines)
+        Task { await app.updatePlace(updated) }
+        dismiss()
     }
 }
 
