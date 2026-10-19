@@ -14,7 +14,8 @@ struct PlacesMapView: View {
     @Environment(AppState.self) private var app
     @Environment(\.palette) private var palette
 
-    @State private var camera: MapCameraPosition = .region(.seoul)
+    /// MapKit 지도는 내 위치에서 시작하고, 위치를 모르면 서울에서 시작한다
+    @State private var camera: MapCameraPosition = .userLocation(fallback: .region(.seoul))
     @State private var searchText = ""
     @State private var searchResults: [PlaceSearchResult] = []
     /// "더 보기"로 이어 받을 다음 페이지

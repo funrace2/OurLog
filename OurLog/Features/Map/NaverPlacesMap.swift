@@ -55,9 +55,11 @@ struct NaverPlacesMap: UIViewRepresentable {
         map.isRotateGestureEnabled = interactive   // 두 손가락으로 돌리기 (나침반을 누르면 북쪽으로 돌아온다)
         map.isTiltGestureEnabled = false
 
-        let start = focus?.coordinate ?? .seoulCenter
-        map.moveCamera(NMFCameraUpdate(scrollTo: NMGLatLng(lat: start.latitude, lng: start.longitude),
-                                       zoomTo: focus?.zoom ?? 12))
+        // 시작 위치: 보여줄 곳이 있으면 거기, 아니면 폰이 마지막으로 알던 내 위치, 그것도 없으면 서울
+        let lastKnown = (showsMyLocation && focus == nil) ? Coordinator.lastKnownLocation() : nil
+        let start = focus?.coordinate ?? lastKnown ?? .seoulCenter
+        let zoom = focus?.zoom ?? (lastKnown != nil ? 15 : 12)
+        map.moveCamera(NMFCameraUpdate(scrollTo: NMGLatLng(lat: start.latitude, lng: start.longitude), zoomTo: zoom))
         context.coordinator.lastFocusID = focus?.id
 
         if interactive {
@@ -105,6 +107,21 @@ struct NaverPlacesMap: UIViewRepresentable {
         private var followUser = false
         /// 위치 추적은 처음 한 번만 켠다. 이후엔 사용자가 내 위치 버튼으로 고른 모드를 건드리지 않는다.
         private var didStartTracking = false
+        /// 처음 들어왔을 때 내 위치로 한 번 옮겼는지
+        private var didCenterOnUser = false
+        /// 그 전에 사용자가 손으로 지도를 움직였는지 (그랬으면 강제로 옮기지 않는다)
+        private var userMovedMap = false
+
+        /// 폰이 마지막으로 알던 위치 (권한이 있을 때만). 지도를 서울이 아니라 여기서 시작한다.
+        static func lastKnownLocation() -> CLLocationCoordinate2D? {
+            let manager = CLLocationManager()
+            switch manager.authorizationStatus {
+            case .authorizedWhenInUse, .authorizedAlways:
+                return manager.location?.coordinate
+            default:
+                return nil
+            }
+        }
         private var lastPositionMode: NMFMyPositionMode?
 
         /// 권한이 없으면 먼저 물어보고, 허락되면 위치 표시를 켠다.
@@ -125,7 +142,31 @@ struct NaverPlacesMap: UIViewRepresentable {
         private func beginTracking(on map: NMFMapView) {
             guard !didStartTracking else { return }
             didStartTracking = true
-            map.positionMode = followUser ? .direction : .normal
+            // 파란 점과 내 위치 버튼을 켠다. 카메라는 SDK 에 맡기지 않고 아래에서 직접 옮긴다
+            // (따라가기 모드만 켜 두면 위치를 받기 전이라 무시될 때가 있었다).
+            map.positionMode = .normal
+            if followUser {
+                locationManager.requestLocation()   // 지금 위치를 한 번 받아서 옮긴다
+            }
+        }
+
+        private func centerOnUser(_ coordinate: CLLocationCoordinate2D) {
+            guard followUser, !didCenterOnUser, !userMovedMap, let map = locationMap else { return }
+            didCenterOnUser = true
+            let update = NMFCameraUpdate(scrollTo: NMGLatLng(lat: coordinate.latitude, lng: coordinate.longitude), zoomTo: 15)
+            update.animation = .easeIn
+            map.moveCamera(update)
+        }
+
+        nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+            MainActor.assumeIsolated {
+                guard let location = locations.last else { return }
+                centerOnUser(location.coordinate)
+            }
+        }
+
+        nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+            print("[지도] 현재 위치를 받지 못했어요: \(error.localizedDescription)")
         }
 
         nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
@@ -225,6 +266,13 @@ struct NaverPlacesMap: UIViewRepresentable {
         }
 
         // NMFMapViewCameraDelegate — 지도 콜백은 메인 스레드에서 온다
+
+        nonisolated func mapView(_ mapView: NMFMapView, cameraWillChangeByReason reason: Int, animated: Bool) {
+            MainActor.assumeIsolated {
+                if reason == NMFMapChangedByGesture { userMovedMap = true }
+            }
+        }
+
         nonisolated func mapViewCameraIdle(_ mapView: NMFMapView) {
             MainActor.assumeIsolated {
                 let target = mapView.cameraPosition.target
