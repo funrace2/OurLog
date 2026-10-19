@@ -13,6 +13,9 @@ import MapKit
 
 struct PlacePreviewView: View {
     let result: PlaceSearchResult
+    /// 일정·일기에서 장소를 고르는 중이면, 저장(또는 이미 저장된 곳 선택) 후 그 장소를 돌려준다.
+    /// nil 이면 지도에서 연 평소 미리보기.
+    var onPick: ((SavedPlace) -> Void)?
 
     @Environment(AppState.self) private var app
     @Environment(\.palette) private var palette
@@ -25,8 +28,9 @@ struct PlacePreviewView: View {
     @State private var webPage: WebPage?
     @State private var savedToOpen: SavedPlace?
 
-    init(result: PlaceSearchResult) {
+    init(result: PlaceSearchResult, onPick: ((SavedPlace) -> Void)? = nil) {
         self.result = result
+        self.onPick = onPick
         let cached = PlaceInfoService.shared.cachedInfo(for: result.lookup)
         _info = State(initialValue: cached ?? PlaceInfo())
         _isLoadingInfo = State(initialValue: cached == nil && PlaceInfoService.isAvailable)
@@ -82,12 +86,21 @@ struct PlacePreviewView: View {
                                 Text("이미 저장한 장소예요")
                                     .font(.hand(17))
                                     .foregroundStyle(palette.textSecondary)
-                                Button {
-                                    savedToOpen = saved
-                                } label: {
-                                    Label("저장된 장소 열기", systemImage: "bookmark.fill")
+                                if let onPick {
+                                    Button {
+                                        onPick(saved)
+                                    } label: {
+                                        Label("이 장소 연결하기", systemImage: "link")
+                                    }
+                                    .buttonStyle(.soft)
+                                } else {
+                                    Button {
+                                        savedToOpen = saved
+                                    } label: {
+                                        Label("저장된 장소 열기", systemImage: "bookmark.fill")
+                                    }
+                                    .buttonStyle(.soft)
                                 }
-                                .buttonStyle(.soft)
                             }
                         } else {
                             Button {
@@ -117,7 +130,13 @@ struct PlacePreviewView: View {
             }
             // 저장이 끝나면 미리보기까지 한 번에 닫는다
             .sheet(isPresented: $showSave) {
-                SavePlaceView(result: result, onSaved: { dismiss() })
+                SavePlaceView(result: result, onSaved: { place in
+                    if let onPick {
+                        onPick(place)       // 고르는 중이면 부른 쪽이 창들을 한 번에 닫는다
+                    } else {
+                        dismiss()
+                    }
+                })
             }
             .sheet(item: $savedToOpen) { PlaceDetailView(place: $0) }
             .sheet(item: $webPage) { page in
@@ -139,8 +158,8 @@ struct PlacePreviewView: View {
 
 struct SavePlaceView: View {
     let result: PlaceSearchResult
-    /// 저장 후 부를 것. 있으면 이 화면을 직접 닫지 않고 부른 쪽에 맡긴다 (미리보기까지 한 번에 닫으려고).
-    var onSaved: (() -> Void)?
+    /// 저장 후 부를 것 (만든 장소를 넘긴다). 있으면 이 화면을 직접 닫지 않고 부른 쪽에 맡긴다.
+    var onSaved: ((SavedPlace) -> Void)?
 
     @Environment(AppState.self) private var app
     @Environment(\.palette) private var palette
@@ -210,7 +229,7 @@ struct SavePlaceView: View {
         )
         Task { await app.addPlace(place) }
         if let onSaved {
-            onSaved()
+            onSaved(place)
         } else {
             dismiss()
         }

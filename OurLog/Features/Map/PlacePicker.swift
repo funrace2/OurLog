@@ -12,6 +12,7 @@ import CoreLocation
 // MARK: - 입력 칸
 
 /// 편집 화면에 들어가는 "장소 연결" 칸. 고른 장소 한 줄만 보여주고, 누르면 고르기 창을 연다.
+/// 저장한 장소가 없어도 눌러서 새 장소를 찾아 추가할 수 있다.
 struct PlaceLinkField: View {
     let title: String
     let emptyMessage: String
@@ -28,44 +29,44 @@ struct PlaceLinkField: View {
                     .font(.hand(18, bold: true))
                     .foregroundStyle(palette.textSecondary)
 
-                if app.places.isEmpty {
-                    Text(emptyMessage)
-                        .font(.hand(16))
-                        .foregroundStyle(palette.textSecondary)
-                } else {
-                    Button {
-                        showPicker = true
-                    } label: {
-                        HStack(spacing: 10) {
-                            if let place = app.place(id: placeID) {
-                                PlaceIcon(category: app.category(id: place.categoryID))
-                                VStack(alignment: .leading, spacing: 1) {
-                                    Text(place.name)
-                                        .font(.hand(19, bold: true))
-                                        .foregroundStyle(palette.textPrimary)
-                                        .lineLimit(1)
-                                    Text(place.address)
-                                        .font(.hand(15))
-                                        .foregroundStyle(palette.textSecondary)
-                                        .lineLimit(1)
-                                }
-                            } else {
-                                Image(systemName: "mappin.and.ellipse")
-                                    .font(.system(size: 15, weight: .bold))
-                                    .foregroundStyle(palette.pen)
-                                Text("저장한 장소에서 고르기")
+                Button {
+                    showPicker = true
+                } label: {
+                    HStack(spacing: 10) {
+                        if let place = app.place(id: placeID) {
+                            PlaceIcon(category: app.category(id: place.categoryID))
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(place.name)
+                                    .font(.hand(19, bold: true))
+                                    .foregroundStyle(palette.textPrimary)
+                                    .lineLimit(1)
+                                Text(place.address)
+                                    .font(.hand(15))
+                                    .foregroundStyle(palette.textSecondary)
+                                    .lineLimit(1)
+                            }
+                        } else {
+                            Image(systemName: "mappin.and.ellipse")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundStyle(palette.pen)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text("장소 고르기")
                                     .font(.hand(19, bold: true))
                                     .foregroundStyle(palette.pen)
+                                Text(app.places.isEmpty ? emptyMessage : "저장한 장소에서 고르거나 새로 찾기")
+                                    .font(.hand(15))
+                                    .foregroundStyle(palette.textSecondary)
+                                    .lineLimit(1)
                             }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundStyle(palette.textSecondary)
                         }
-                        .contentShape(.rect)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(palette.textSecondary)
                     }
-                    .buttonStyle(.plain)
+                    .contentShape(.rect)
                 }
+                .buttonStyle(.plain)
             }
         }
         .sheet(isPresented: $showPicker) {
@@ -127,6 +128,39 @@ struct PlacePickerView: View {
 
                 ScrollView {
                     VStack(spacing: 12) {
+                        NavigationLink {
+                            NewPlaceSearchView { place in
+                                // 저장(또는 이미 저장된 곳 선택)하면 바로 연결하고 창들을 한 번에 닫는다
+                                selection = place.id
+                                dismiss()
+                            }
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: "plus.magnifyingglass")
+                                    .font(.system(size: 16, weight: .bold))
+                                Text("새 장소 찾아서 추가")
+                                    .font(.hand(20, bold: true))
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12, weight: .bold))
+                            }
+                            .foregroundStyle(palette.ink)
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 16)
+                            .sketchBox(seed: 55, fill: palette.penSoft)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 20)
+
+                        if !app.places.isEmpty {
+                            Text("저장한 장소")
+                                .font(.hand(17, bold: true))
+                                .foregroundStyle(palette.textSecondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 24)
+                                .padding(.top, 6)
+                        }
+
                         searchField
                         categoryChips
                         SketchPicker(selection: $sort, options: SavedPlaceListView.PlaceSort.allCases.map { ($0, $0.title) })
@@ -268,6 +302,127 @@ struct PlacePickerView: View {
         .padding(.vertical, 11)
         .padding(.horizontal, 14)
         .contentShape(.rect)
+    }
+}
+
+// MARK: - 새 장소 찾기
+
+/// 고르기 창 안에서 저장 안 한 장소를 검색한다. 결과를 누르면 미리보기 → 저장 → 바로 연결.
+struct NewPlaceSearchView: View {
+    let onPick: (SavedPlace) -> Void
+
+    @Environment(AppState.self) private var app
+    @Environment(\.palette) private var palette
+
+    @State private var query = ""
+    @State private var results: [PlaceSearchResult] = []
+    @State private var isSearching = false
+    @State private var didSearch = false
+    @State private var preview: PlaceSearchResult?
+    @FocusState private var focused: Bool
+
+    private let searchService = AppEnvironment.makePlaceSearchService()
+
+    var body: some View {
+        ZStack {
+            CuteBackground()
+
+            ScrollView {
+                VStack(spacing: 12) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(palette.textSecondary)
+                        TextField("가게·장소 이름으로 찾기", text: $query)
+                            .font(.hand(20))
+                            .submitLabel(.search)
+                            .focused($focused)
+                            .onSubmit { Task { await search() } }
+                        if isSearching { ProgressView().controlSize(.small) }
+                    }
+                    .sketchField()
+                    .padding(.horizontal, 20)
+
+                    if results.isEmpty {
+                        if didSearch && !isSearching {
+                            CuteCard {
+                                EmptyStateView(title: "검색 결과가 없어요", message: "가게 이름이나 동네 이름을 바꿔서 찾아보세요")
+                            }
+                            .padding(.horizontal, 20)
+                        } else {
+                            Text("내 위치 근처부터 찾아요")
+                                .font(.hand(16))
+                                .foregroundStyle(palette.textSecondary)
+                        }
+                    } else {
+                        CuteCard(padding: 0) {
+                            LazyVStack(spacing: 0) {
+                                ForEach(Array(results.enumerated()), id: \.element.id) { index, result in
+                                    Button {
+                                        preview = result
+                                    } label: {
+                                        row(result)
+                                    }
+                                    .buttonStyle(.plain)
+
+                                    if index < results.count - 1 {
+                                        SketchDivider(seed: UInt64(index) &+ 700).padding(.horizontal, 12)
+                                    }
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                    }
+                }
+                .padding(.vertical, 12)
+            }
+        }
+        .navigationTitle("새 장소 찾기")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $preview) { result in
+            PlacePreviewView(result: result, onPick: onPick)
+        }
+        .onAppear { focused = true }
+    }
+
+    private func row(_ result: PlaceSearchResult) -> some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(result.name)
+                    .font(.hand(19, bold: true))
+                    .foregroundStyle(palette.textPrimary)
+                    .lineLimit(1)
+                Text([PlaceFormat.distanceFromMe(to: result.coordinate), result.category.isEmpty ? nil : result.category, result.address]
+                    .compactMap { $0 }.joined(separator: " · "))
+                    .font(.hand(15))
+                    .foregroundStyle(palette.textSecondary)
+                    .lineLimit(1)
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(palette.textSecondary)
+        }
+        .padding(.vertical, 11)
+        .padding(.horizontal, 14)
+        .contentShape(.rect)
+    }
+
+    private func search() async {
+        let trimmed = query.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        isSearching = true
+        defer {
+            isSearching = false
+            didSearch = true
+        }
+        do {
+            // 내 위치를 알면 그 근처부터, 모르면 전국에서
+            results = try await searchService.search(query: trimmed, near: MyLocation.current?.coordinate).results
+        } catch {
+            print("새 장소 검색 실패: \(error)")
+            app.errorMessage = "검색에 실패했어요. 잠시 후 다시 시도해 주세요."
+        }
     }
 }
 
