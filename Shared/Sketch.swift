@@ -27,34 +27,50 @@ nonisolated struct SketchRectangle: Shape {
     var seed: UInt64
     var roughness: CGFloat = 1.8
 
+    /// 떨림 점 사이 간격. 변 길이로 나누지 않고 고정 간격으로 찍어서,
+    /// 상자 크기가 바뀌어도 (키보드에 맞춰 줄어들 때 등) 남은 부분의 모양은 그대로 두고 변만 짧아지게 한다.
+    private static let step: CGFloat = 26
+
     func path(in rect: CGRect) -> Path {
-        var g = SeededGenerator(seed: seed)
         let r = rect.insetBy(dx: 3, dy: 3)
-        let corners = [
-            CGPoint(x: r.minX, y: r.minY),
-            CGPoint(x: r.maxX, y: r.minY),
-            CGPoint(x: r.maxX, y: r.maxY),
-            CGPoint(x: r.minX, y: r.maxY),
-        ]
-        var pts: [CGPoint] = []
-        for i in 0..<4 {
-            let a = corners[i]
-            let b = corners[(i + 1) % 4]
+        let tl = CGPoint(x: r.minX, y: r.minY)
+        let tr = CGPoint(x: r.maxX, y: r.minY)
+        let br = CGPoint(x: r.maxX, y: r.maxY)
+        let bl = CGPoint(x: r.minX, y: r.maxY)
+
+        // 모서리마다 따로 조금 흔든다
+        var cg = SeededGenerator(seed: seed)
+        let half = roughness * 0.5
+        let corners = [tl, tr, br, bl].map {
+            CGPoint(x: $0.x + .random(in: -half...half, using: &cg),
+                    y: $0.y + .random(in: -half...half, using: &cg))
+        }
+
+        // 변 안쪽 점들. 늘 왼쪽 위 기준 모서리에서부터 찍는다 (아래·오른쪽 끝이 움직여도 앞쪽 점은 안 바뀐다).
+        func interior(from a: CGPoint, to b: CGPoint, edge: UInt64) -> [CGPoint] {
+            var g = SeededGenerator(seed: seed &+ (edge &+ 1) &* 0x9E37_79B9_7F4A_7C15)
             let dx = b.x - a.x, dy = b.y - a.y
             let len = max(1, hypot(dx, dy))
-            let nx = -dy / len, ny = dx / len
-            let segments = max(3, Int(len / 26))
-            for s in 0..<segments {
-                let t = CGFloat(s) / CGFloat(segments)
-                let amp = s == 0 ? roughness * 0.5 : roughness
-                let off = CGFloat.random(in: -amp...amp, using: &g)
-                pts.append(CGPoint(x: a.x + dx * t + nx * off, y: a.y + dy * t + ny * off))
+            let ux = dx / len, uy = dy / len
+            var pts: [CGPoint] = []
+            var d = Self.step
+            while d < len - Self.step * 0.4 {
+                let off = CGFloat.random(in: -roughness...roughness, using: &g)
+                pts.append(CGPoint(x: a.x + ux * d - uy * off, y: a.y + uy * d + ux * off))
+                d += Self.step
             }
+            return pts
         }
+
         var p = Path()
-        guard let first = pts.first else { return p }
-        p.move(to: first)
-        for pt in pts.dropFirst() { p.addLine(to: pt) }
+        p.move(to: corners[0])
+        for pt in interior(from: tl, to: tr, edge: 0) { p.addLine(to: pt) }
+        p.addLine(to: corners[1])
+        for pt in interior(from: tr, to: br, edge: 1) { p.addLine(to: pt) }
+        p.addLine(to: corners[2])
+        for pt in interior(from: bl, to: br, edge: 2).reversed() { p.addLine(to: pt) }
+        p.addLine(to: corners[3])
+        for pt in interior(from: tl, to: bl, edge: 3).reversed() { p.addLine(to: pt) }
         p.closeSubpath()
         return p
     }

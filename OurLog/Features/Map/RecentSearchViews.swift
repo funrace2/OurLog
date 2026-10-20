@@ -20,10 +20,13 @@ struct RecentSearchList: View {
     @State private var isEditing = false
     /// 목록 내용 높이 (적으면 그만큼만 창을 그린다)
     @State private var rowsHeight: CGFloat = 0
-    /// 창 아래쪽이 키보드에 가린 높이. 그만큼 스크롤 여백을 줘서 가린 기록까지 올려 볼 수 있게 한다.
-    /// (창 크기를 줄이면 손그림 테두리가 다시 그려져 흔들려서, 창은 그대로 두고 여백만 준다)
+    /// 키보드 윗변 위치(화면 기준). 키보드가 올라오면 창을 그 위까지만 그린다.
     @State private var keyboardTop: CGFloat = .infinity
-    @State private var boxBottom: CGFloat = 0
+    @State private var boxTop: CGFloat = 0
+
+    private var maxBoxHeight: CGFloat {
+        keyboardTop == .infinity ? .infinity : max(120, keyboardTop - boxTop - 8)
+    }
 
     private var visibleItems: [RecentSearch] {
         let keyword = Self.normalize(filter)
@@ -61,19 +64,19 @@ struct RecentSearchList: View {
                     rows.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { rowsHeight = $0 }
                 }
                 .frame(maxHeight: rowsHeight)
-                .contentMargins(.bottom, max(0, boxBottom - keyboardTop), for: .scrollContent)
                 .scrollBounceBehavior(.basedOnSize)
             }
         }
         .frame(maxWidth: .infinity)
-        .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { boxBottom = $0 }
+        .frame(maxHeight: maxBoxHeight, alignment: .top)
+        .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { boxTop = $0 }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { note in
             if let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
-                keyboardTop = frame.minY
+                withAnimation(.easeOut(duration: 0.25)) { keyboardTop = frame.minY }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-            keyboardTop = .infinity
+            withAnimation(.easeOut(duration: 0.25)) { keyboardTop = .infinity }
         }
         .sketchBox(seed: 357, fill: palette.surface, roughness: 1.3, lineWidth: 1.6)
         .sheet(isPresented: $isEditing) {
