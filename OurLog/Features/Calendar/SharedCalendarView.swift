@@ -16,6 +16,7 @@ struct SharedCalendarView: View {
     /// 열 편집 화면. "무엇을 열지"를 띄우는 값 자체에 담아야 띄우는 순간 확정된다.
     /// (따로 두고 동시에 바꾸면 SwiftUI 가 바뀌기 전 값으로 열어서 기존 일정이 "새 일정"으로 열렸다)
     @State private var editorTarget: EventEditorTarget?
+    @State private var showMonthPicker = false
 
     var body: some View {
         NavigationStack {
@@ -33,6 +34,12 @@ struct SharedCalendarView: View {
             }
             .paperTitle("우리 달력")
             .toolbar {
+                // 다른 달로 넘어갔거나 다른 날을 골랐을 때만 보인다
+                if !isShowingToday {
+                    ToolbarItem(placement: .topBarLeading) {
+                        ToolbarTextButton("오늘") { goToToday() }
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         editorTarget = .new(selectedDate)
@@ -40,6 +47,12 @@ struct SharedCalendarView: View {
                         Image(systemName: "plus")
                     }
                 }
+            }
+            .sheet(isPresented: $showMonthPicker) {
+                MonthPickerSheet(month: visibleMonth) { picked in
+                    withAnimation(.snappy) { visibleMonth = picked }
+                }
+                .presentationDetents([.height(340)])
             }
             .sheet(item: $editorTarget) { target in
                 switch target {
@@ -86,9 +99,17 @@ struct SharedCalendarView: View {
 
             Spacer()
 
-            Text(visibleMonth.formatted(.dateTime.year().month(.wide).locale(Locale(identifier: "ko_KR"))))
-                .font(.hand(23, bold: true))
+            // 누르면 연·월을 골라 한 번에 넘어간다
+            Button { showMonthPicker = true } label: {
+                HStack(spacing: 4) {
+                    Text(visibleMonth.formatted(.dateTime.year().month(.wide).locale(Locale(identifier: "ko_KR"))))
+                        .font(.hand(23, bold: true))
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 11, weight: .bold))
+                }
                 .foregroundStyle(palette.textPrimary)
+            }
+            .buttonStyle(.plain)
 
             Spacer()
 
@@ -176,6 +197,18 @@ struct SharedCalendarView: View {
     private func shiftMonth(_ value: Int) {
         guard let shifted = Calendar.dday.date(byAdding: .month, value: value, to: visibleMonth) else { return }
         withAnimation(.snappy) { visibleMonth = shifted }
+    }
+
+    private var isShowingToday: Bool {
+        Calendar.dday.isDate(visibleMonth, equalTo: .now, toGranularity: .month)
+            && Calendar.dday.isDateInToday(selectedDate)
+    }
+
+    private func goToToday() {
+        withAnimation(.snappy) {
+            visibleMonth = .now
+            selectedDate = .now
+        }
     }
 
     // MARK: 선택한 날
@@ -330,6 +363,69 @@ struct EventRow: View {
     /// 누가 만든 일정인지 색으로 구분한다.
     private var authorColor: Color {
         event.createdBy == app.me?.id ? palette.primary : palette.accent
+    }
+}
+
+// MARK: - 연월 고르기
+
+private struct MonthPickerSheet: View {
+    let onPick: (Date) -> Void
+
+    @Environment(\.palette) private var palette
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var year: Int
+    @State private var month: Int
+
+    private let years: [Int]
+
+    init(month date: Date, onPick: @escaping (Date) -> Void) {
+        self.onPick = onPick
+        let cal = Calendar.dday
+        let currentYear = cal.component(.year, from: .now)
+        years = Array((currentYear - 30)...(currentYear + 10))
+        _year = State(initialValue: cal.component(.year, from: date))
+        _month = State(initialValue: cal.component(.month, from: date))
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                CuteBackground()
+
+                VStack(spacing: 16) {
+                    HStack(spacing: 0) {
+                        Picker("연도", selection: $year) {
+                            ForEach(years, id: \.self) { value in
+                                Text(verbatim: "\(value)년").font(.hand(22)).tag(value)
+                            }
+                        }
+                        Picker("월", selection: $month) {
+                            ForEach(1...12, id: \.self) { value in
+                                Text("\(value)월").font(.hand(22)).tag(value)
+                            }
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .foregroundStyle(palette.ink)
+
+                    Button("이동하기") {
+                        if let date = Calendar.dday.date(from: DateComponents(year: year, month: month, day: 1)) {
+                            onPick(date)
+                        }
+                        dismiss()
+                    }
+                    .buttonStyle(.soft)
+                }
+                .padding(.horizontal, 20)
+            }
+            .paperTitle("어느 달로 갈까요?")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    ToolbarTextButton("취소") { dismiss() }
+                }
+            }
+        }
     }
 }
 
