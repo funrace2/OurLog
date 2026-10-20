@@ -165,10 +165,11 @@ private struct DdayCard: View {
 private struct CatSummaryCard: View {
     @Environment(AppState.self) private var app
     @Environment(\.palette) private var palette
+    @Environment(\.selectTab) private var selectTab
 
     var body: some View {
-        NavigationLink {
-            CatRoomView()
+        Button {
+            selectTab(.cat)
         } label: {
             CuteCard {
                 HStack(spacing: 14) {

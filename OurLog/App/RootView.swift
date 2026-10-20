@@ -98,28 +98,39 @@ private struct LoadingScreen: View {
 
 // MARK: - 메인 탭
 
+enum AppTab: Hashable {
+    case home, map, calendar, diary, cat
+}
+
+extension EnvironmentValues {
+    /// 다른 탭으로 넘어가기 (홈의 고양이 카드처럼 탭 사이를 잇는 곳에서 쓴다)
+    @Entry var selectTab: (AppTab) -> Void = { _ in }
+}
+
 struct MainTabView: View {
     @Environment(\.palette) private var palette
+    @State private var selection: AppTab = .home
 
     var body: some View {
-        TabView {
-            Tab("홈", systemImage: "house") {
+        TabView(selection: $selection) {
+            Tab("홈", systemImage: "house", value: .home) {
                 HomeView()
             }
-            Tab("지도", systemImage: "map") {
+            Tab("지도", systemImage: "map", value: .map) {
                 PlacesMapView()
             }
-            Tab("캘린더", systemImage: "calendar") {
+            Tab("캘린더", systemImage: "calendar", value: .calendar) {
                 SharedCalendarView()
             }
-            Tab("일기", systemImage: "book.closed") {
+            Tab("일기", systemImage: "book.closed", value: .diary) {
                 DiaryListView()
             }
-            Tab("고양이", systemImage: "pawprint") {
+            Tab("고양이", systemImage: "pawprint", value: .cat) {
                 CatRoomView()
             }
         }
         .tint(palette.primary)
+        .environment(\.selectTab) { selection = $0 }
     }
 }
 
