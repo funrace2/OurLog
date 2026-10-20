@@ -50,9 +50,26 @@ struct PlacesMapView: View {
     @State private var locationManager = CLLocationManager()
     private let searchService = AppEnvironment.makePlaceSearchService()
 
-    private var visiblePlaces: [SavedPlace] {
+    /// 검색 결과 중 이미 저장한 곳 → 그 저장 장소 (검색 핀 대신 저장 핀을 강조해서 보여준다)
+    private var savedMatches: [PlaceSearchResult.ID: SavedPlace] {
+        searchResults.reduce(into: [:]) { result, item in
+            result[item.id] = app.savedPlace(matching: item)
+        }
+    }
+
+    /// 지도에 그릴 저장 장소. 카테고리로 걸러도, 검색에 걸린 저장 장소는 보여준다.
+    private func visiblePlaces(highlighted: Set<SavedPlace.ID>) -> [SavedPlace] {
         guard let selectedCategoryID else { return app.places }
-        return app.places.filter { $0.categoryID == selectedCategoryID }
+        return app.places.filter { $0.categoryID == selectedCategoryID || highlighted.contains($0.id) }
+    }
+
+    /// 검색 결과를 누르면 저장한 곳은 바로 저장 장소 상세로, 아니면 미리보기로 연다
+    private func open(_ result: PlaceSearchResult) {
+        if let saved = app.savedPlace(matching: result) {
+            selectedPlace = saved
+        } else {
+            previewResult = result
+        }
     }
 
     var body: some View {
@@ -176,17 +193,24 @@ struct PlacesMapView: View {
 
     @ViewBuilder
     private func map(bottomInset: CGFloat) -> some View {
+        let matches = savedMatches
+        let highlighted = Set(matches.values.map(\.id))
+        let places = visiblePlaces(highlighted: highlighted)
+        // 저장한 곳은 검색 핀을 겹쳐 그리지 않는다
+        let newResults = searchResults.filter { matches[$0.id] == nil }
+
         if AppEnvironment.useNaverMaps {
             NaverPlacesMap(
-                places: visiblePlaces,
-                searchResults: searchResults,
+                places: places,
+                searchResults: newResults,
+                highlightedPlaceIDs: highlighted,
                 categoryFor: { app.category(id: $0) },
                 focus: naverFocus,
                 showsMyLocation: true,
                 compassTopInset: 112,   // 검색창 + 카테고리 칩 아래
                 bottomInset: bottomInset,
                 onSelectPlace: { selectedPlace = $0 },
-                onSelectResult: { previewResult = $0 },
+                onSelectResult: { open($0) },
                 onAreaChange: { area, movedByUser in mapAreaChanged(area, movedByUser: movedByUser) },
                 onSelectSymbol: { name, coordinate in
                     Task { await openSymbol(name: name, at: coordinate) }
@@ -194,31 +218,32 @@ struct PlacesMapView: View {
             )
             .ignoresSafeArea(edges: .bottom)
         } else {
-            appleMap
+            appleMap(places: places, results: newResults, highlighted: highlighted)
         }
     }
 
-    private var appleMap: some View {
+    private func appleMap(places: [SavedPlace], results: [PlaceSearchResult], highlighted: Set<SavedPlace.ID>) -> some View {
         MapReader { _ in
             Map(position: $camera) {
                 UserAnnotation()
 
-                ForEach(visiblePlaces) { place in
+                ForEach(places) { place in
                     Annotation(place.name, coordinate: place.coordinate) {
                         PlacePin(
                             category: app.category(id: place.categoryID),
-                            isVisited: place.isVisited
+                            isVisited: place.isVisited,
+                            isHighlighted: highlighted.contains(place.id)
                         )
                         .onTapGesture { selectedPlace = place }
                     }
                 }
 
-                ForEach(searchResults) { result in
+                ForEach(results) { result in
                     Annotation(result.name, coordinate: result.coordinate) {
                         Image(systemName: "mappin.circle.fill")
                             .font(.system(size: 26))
                             .foregroundStyle(palette.accent)
-                            .onTapGesture { previewResult = result }
+                            .onTapGesture { open(result) }
                     }
                 }
             }
@@ -415,12 +440,7 @@ struct PlacesMapView: View {
             center.expectingProgrammaticMove = true
             naverFocus = MapFocus(coordinate: result.coordinate)
             camera = .region(MKCoordinateRegion(center: result.coordinate, latitudinalMeters: 1_000, longitudinalMeters: 1_000))
-            // 저장한 곳이면 저장 장소 상세로, 아니면 미리보기로
-            if let saved = app.savedPlace(matching: result) {
-                selectedPlace = saved
-            } else {
-                previewResult = result
-            }
+            open(result)
         }
     }
 
@@ -431,14 +451,14 @@ struct PlacesMapView: View {
         defer { resolvingSymbol = nil }
 
         let found = await searchService.resolve(name: name, at: coordinate)
-        previewResult = found ?? PlaceSearchResult(
+        open(found ?? PlaceSearchResult(
             id: "symbol-\(coordinate.latitude),\(coordinate.longitude)",
             name: name,
             address: "",
             category: "",
             latitude: coordinate.latitude,
             longitude: coordinate.longitude
-        )
+        ))
     }
 
     private func loadMore() async {
@@ -482,16 +502,26 @@ struct PlacesMapView: View {
     }
 
     private var resultsList: some View {
-        VStack(spacing: 0) {
+        let matches = savedMatches
+        return VStack(spacing: 0) {
             ForEach(searchResults) { result in
                 Button {
-                    previewResult = result
+                    open(result)
                 } label: {
                     HStack(spacing: 10) {
+                        if let saved = matches[result.id] {
+                            PlaceIcon(category: app.category(id: saved.categoryID))
+                        }
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(result.name)
-                                .font(.hand(20, bold: true))
-                                .foregroundStyle(palette.textPrimary)
+                            HStack(spacing: 6) {
+                                Text(result.name)
+                                    .font(.hand(20, bold: true))
+                                    .foregroundStyle(palette.textPrimary)
+                                    .lineLimit(1)
+                                if matches[result.id] != nil {
+                                    Chip(text: "저장됨")
+                                }
+                            }
                             Text([PlaceFormat.distanceFromMe(to: result.coordinate), result.category.isEmpty ? nil : result.category, result.address]
                                 .compactMap { $0 }.joined(separator: " · "))
                                 .font(.hand(16))
@@ -573,21 +603,33 @@ struct PlacesMapView: View {
 struct PlacePin: View {
     let category: PlaceCategory?
     let isVisited: Bool
+    /// 검색에 걸린 저장 장소. 크게 그리고 잉크 테두리를 둘러 눈에 띄게 한다.
+    var isHighlighted = false
 
     @Environment(\.palette) private var palette
 
     var body: some View {
         let color = category?.color ?? palette.primary
+        let size: CGFloat = isHighlighted ? 42 : 32
 
         ZStack {
             Circle()
                 .fill(color)
-                .frame(width: 32, height: 32)
+                .frame(width: size, height: size)
 
             Image(systemName: category?.symbol ?? "mappin")
-                .font(.system(size: 13, weight: .bold))
+                .font(.system(size: isHighlighted ? 17 : 13, weight: .bold))
                 .foregroundStyle(.white)
         }
+        .overlay {
+            if isHighlighted {
+                Circle().stroke(.white, lineWidth: 3)
+                SketchCircle(seed: 79)
+                    .stroke(Theme.ink, lineWidth: 2)
+                    .padding(-4)
+            }
+        }
+        .padding(isHighlighted ? 5 : 0)
         .overlay(alignment: .topTrailing) {
             if isVisited {
                 Image(systemName: "checkmark.circle.fill")

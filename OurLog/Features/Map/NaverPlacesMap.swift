@@ -23,6 +23,8 @@ struct MapFocus: Equatable {
 struct NaverPlacesMap: UIViewRepresentable {
     var places: [SavedPlace]
     var searchResults: [PlaceSearchResult] = []
+    /// 검색에 걸린 저장 장소 (핀을 강조한다)
+    var highlightedPlaceIDs: Set<String> = []
     var categoryFor: (String) -> PlaceCategory?
     var focus: MapFocus?
     /// false 면 손으로 움직일 수 없는 미리보기 지도 (상세 화면)
@@ -109,7 +111,7 @@ struct NaverPlacesMap: UIViewRepresentable {
         coordinator.parent = self
         let map = naverView.mapView
 
-        coordinator.syncMarkers(on: map, places: places, results: searchResults, palette: palette)
+        coordinator.syncMarkers(on: map, places: places, results: searchResults, highlighted: highlightedPlaceIDs, palette: palette)
 
         if coordinator.appliedBottomInset != bottomInset {
             coordinator.appliedBottomInset = bottomInset
@@ -229,8 +231,9 @@ struct NaverPlacesMap: UIViewRepresentable {
         /// 지금 찍혀 있는 마커가 어떤 데이터로 그려졌는지. 같으면 다시 그리지 않는다.
         private var markerSignature: [AnyHashable] = []
 
-        func syncMarkers(on map: NMFMapView, places: [SavedPlace], results: [PlaceSearchResult], palette: ThemePalette) {
-            let signature: [AnyHashable] = places.map { AnyHashable($0) } + results.map { AnyHashable($0) } + [AnyHashable("\(palette.pen)")]
+        func syncMarkers(on map: NMFMapView, places: [SavedPlace], results: [PlaceSearchResult], highlighted: Set<String>, palette: ThemePalette) {
+            let signature: [AnyHashable] = places.map { AnyHashable($0) } + results.map { AnyHashable($0) }
+                + [AnyHashable(highlighted), AnyHashable("\(palette.pen)")]
             guard signature != markerSignature else { return }
             markerSignature = signature
 
@@ -240,11 +243,16 @@ struct NaverPlacesMap: UIViewRepresentable {
 
             for place in places {
                 let category = parent?.categoryFor(place.categoryID)
-                let key = "place|\(category?.id ?? "-")|\(place.isVisited)"
+                let isHighlighted = highlighted.contains(place.id)
+                let key = "place|\(category?.id ?? "-")|\(place.isVisited)|\(isHighlighted)"
                 let marker = makeMarker(at: place.coordinate, caption: place.name, icon: icon(key) {
-                    PlacePin(category: category, isVisited: place.isVisited)
+                    PlacePin(category: category, isVisited: place.isVisited, isHighlighted: isHighlighted)
                         .environment(\.palette, palette)
                 })
+                if isHighlighted {
+                    marker.zIndex = 20   // 검색 핀보다 위
+                    marker.captionTextSize = 14
+                }
                 marker.touchHandler = { [weak self] _ in
                     self?.parent?.onSelectPlace(place)
                     return true
