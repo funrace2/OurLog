@@ -31,9 +31,12 @@ struct NaverPlacesMap: UIViewRepresentable {
     var showsMyLocation = false
     /// 나침반을 지도 위쪽에서 얼마나 내려 둘지 (검색창 같은 위 오버레이에 가리지 않게)
     var compassTopInset: CGFloat = 12
+    /// 아래에서 올라온 검색 결과 판 높이. 내 위치 버튼을 그 위로 올리고, 지도 가운데도 판 위쪽으로 잡는다.
+    var bottomInset: CGFloat = 0
     var onSelectPlace: (SavedPlace) -> Void = { _ in }
     var onSelectResult: (PlaceSearchResult) -> Void = { _ in }
-    var onCenterChange: (CLLocationCoordinate2D) -> Void = { _ in }
+    /// 지도가 멈출 때마다 보이는 영역과, 사용자가 손으로 움직였는지를 알려 준다
+    var onAreaChange: (MapArea, _ movedByUser: Bool) -> Void = { _, _ in }
     /// 지도에 그려진 가게·장소 이름(심볼)을 눌렀을 때. nil 이면 심볼을 눌러도 아무 일도 없다.
     var onSelectSymbol: ((String, CLLocationCoordinate2D) -> Void)?
 
@@ -44,7 +47,8 @@ struct NaverPlacesMap: UIViewRepresentable {
     func makeUIView(context: Context) -> NMFNaverMapView {
         let naverView = NMFNaverMapView(frame: .zero)
         naverView.showZoomControls = false
-        naverView.showLocationButton = showsMyLocation
+        // 내장 내 위치 버튼은 자리를 못 옮겨서 검색 결과 판에 가린다 → 끄고 따로 둔다
+        naverView.showLocationButton = false
         naverView.showScaleBar = interactive
         // 내장 나침반은 왼쪽 위라 검색창에 가린다 → 끄고 오른쪽에 따로 둔다 (회전하면 나타난다)
         naverView.showCompass = false
@@ -79,6 +83,21 @@ struct NaverPlacesMap: UIViewRepresentable {
         }
 
         if showsMyLocation {
+            let locationButton = NMFLocationButton()
+            locationButton.mapView = map
+            locationButton.translatesAutoresizingMaskIntoConstraints = false
+            naverView.addSubview(locationButton)
+            let bottom = locationButton.bottomAnchor.constraint(
+                equalTo: naverView.safeAreaLayoutGuide.bottomAnchor, constant: -(12 + bottomInset)
+            )
+            NSLayoutConstraint.activate([
+                locationButton.leadingAnchor.constraint(equalTo: naverView.safeAreaLayoutGuide.leadingAnchor, constant: 12),
+                bottom,
+            ])
+            context.coordinator.locationButtonBottom = bottom
+        }
+
+        if showsMyLocation {
             // 따로 보여줄 곳이 없으면 내 위치로 가서 따라간다. 손으로 지도를 움직이면 SDK 가 추적을 풀어 준다.
             context.coordinator.startLocation(on: map, followUser: focus == nil)
         }
@@ -91,6 +110,18 @@ struct NaverPlacesMap: UIViewRepresentable {
         let map = naverView.mapView
 
         coordinator.syncMarkers(on: map, places: places, results: searchResults, palette: palette)
+
+        if coordinator.appliedBottomInset != bottomInset {
+            coordinator.appliedBottomInset = bottomInset
+            coordinator.locationButtonBottom?.constant = -(12 + bottomInset)
+            // 보이는 영역은 그대로 두고, 판에 가린 부분만 지도 콘텐츠에서 뺀다
+            let safeBottom = naverView.safeAreaInsets.bottom
+            map.setContentInset(
+                UIEdgeInsets(top: 0, left: 0, bottom: bottomInset > 0 ? safeBottom + bottomInset : 0, right: 0),
+                keepCamera: false
+            )
+            UIView.animate(withDuration: 0.25) { naverView.layoutIfNeeded() }
+        }
 
         if let focus, focus.id != coordinator.lastFocusID {
             coordinator.lastFocusID = focus.id
@@ -116,6 +147,10 @@ struct NaverPlacesMap: UIViewRepresentable {
         private var didCenterOnUser = false
         /// 그 전에 사용자가 손으로 지도를 움직였는지 (그랬으면 강제로 옮기지 않는다)
         private var userMovedMap = false
+        /// 지금 움직임이 손으로 한 것인지 (멈췄을 때 "현 지도에서 검색"을 띄울지 정한다)
+        private var movingByGesture = false
+        var locationButtonBottom: NSLayoutConstraint?
+        var appliedBottomInset: CGFloat = 0
 
         /// 폰이 마지막으로 알던 위치 (권한이 있을 때만). 지도를 서울이 아니라 여기서 시작한다.
         static func lastKnownLocation() -> CLLocationCoordinate2D? {
@@ -290,7 +325,8 @@ struct NaverPlacesMap: UIViewRepresentable {
         @objc(mapView:cameraWillChangeByReason:animated:)
         nonisolated func mapView(_ mapView: NMFMapView, cameraWillChangeByReason reason: Int, animated: Bool) {
             MainActor.assumeIsolated {
-                if reason == NMFMapChangedByGesture { userMovedMap = true }
+                movingByGesture = reason == NMFMapChangedByGesture
+                if movingByGesture { userMovedMap = true }
             }
         }
 
@@ -298,7 +334,14 @@ struct NaverPlacesMap: UIViewRepresentable {
         nonisolated func mapViewCameraIdle(_ mapView: NMFMapView) {
             MainActor.assumeIsolated {
                 let target = mapView.cameraPosition.target
-                parent?.onCenterChange(CLLocationCoordinate2D(latitude: target.lat, longitude: target.lng))
+                let bounds = mapView.contentBounds
+                let area = MapArea(
+                    center: CLLocationCoordinate2D(latitude: target.lat, longitude: target.lng),
+                    southWest: CLLocationCoordinate2D(latitude: bounds.southWestLat, longitude: bounds.southWestLng),
+                    northEast: CLLocationCoordinate2D(latitude: bounds.northEastLat, longitude: bounds.northEastLng)
+                )
+                parent?.onAreaChange(area, movingByGesture)
+                movingByGesture = false
             }
         }
     }

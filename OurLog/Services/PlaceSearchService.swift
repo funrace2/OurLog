@@ -24,15 +24,41 @@ nonisolated struct PlaceSearchCursor: Sendable {
     let center: CLLocationCoordinate2D?
     let radius: Int?
     let page: Int
+    /// "현 지도에서 검색"이면 화면에 보이는 영역 안에서만 찾는다
+    var area: MapArea? = nil
+}
+
+/// 지금 화면에 보이는 지도 영역
+nonisolated struct MapArea: Sendable {
+    let center: CLLocationCoordinate2D
+    let southWest: CLLocationCoordinate2D
+    let northEast: CLLocationCoordinate2D
+
+    /// 가운데에서 모서리까지 거리(m)
+    var radius: Double {
+        CLLocation(latitude: center.latitude, longitude: center.longitude)
+            .distance(from: CLLocation(latitude: northEast.latitude, longitude: northEast.longitude))
+    }
 }
 
 @MainActor
 protocol PlaceSearchService {
     func search(query: String, near center: CLLocationCoordinate2D?) async throws -> PlaceSearchPage
+    /// 화면에 보이는 영역 안에서만 찾는다 ("현 지도에서 검색")
+    func search(query: String, in area: MapArea) async throws -> PlaceSearchPage
     func more(_ cursor: PlaceSearchCursor) async throws -> PlaceSearchPage
 }
 
 extension PlaceSearchService {
+    /// 영역 검색을 따로 지원하지 않으면 그 가운데 근처에서 찾고, 화면 밖 결과는 뺀다
+    func search(query: String, in area: MapArea) async throws -> PlaceSearchPage {
+        var page = try await search(query: query, near: area.center)
+        page.results = page.results.filter { area.contains($0.coordinate) }
+        page.next = nil
+        page.scope = nil
+        return page
+    }
+
     /// 페이지가 없는 검색(네이버·Apple)은 더 받을 게 없다
     func more(_ cursor: PlaceSearchCursor) async throws -> PlaceSearchPage {
         PlaceSearchPage(results: [], next: nil)
@@ -100,6 +126,12 @@ final class KakaoPlaceSearchService: PlaceSearchService {
         return try await fetch(PlaceSearchCursor(query: trimmed, center: center, radius: nil, page: 1))
     }
 
+    func search(query: String, in area: MapArea) async throws -> PlaceSearchPage {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return PlaceSearchPage(results: [], next: nil) }
+        return try await fetch(PlaceSearchCursor(query: trimmed, center: area.center, radius: nil, page: 1, area: area))
+    }
+
     func more(_ cursor: PlaceSearchCursor) async throws -> PlaceSearchPage {
         try await fetch(cursor)
     }
@@ -119,6 +151,12 @@ final class KakaoPlaceSearchService: PlaceSearchService {
         }
         if let radius = cursor.radius {
             items.append(URLQueryItem(name: "radius", value: String(radius)))
+        }
+        if let area = cursor.area {
+            // 왼쪽 아래 경도,위도, 오른쪽 위 경도,위도
+            let rect = [area.southWest.longitude, area.southWest.latitude, area.northEast.longitude, area.northEast.latitude]
+                .map { String($0) }.joined(separator: ",")
+            items.append(URLQueryItem(name: "rect", value: rect))
         }
         var components = URLComponents(string: "https://dapi.kakao.com/v2/local/search/keyword.json")!
         components.queryItems = items
@@ -151,8 +189,14 @@ final class KakaoPlaceSearchService: PlaceSearchService {
 
         let next = decoded.meta.is_end || cursor.page >= 3
             ? nil
-            : PlaceSearchCursor(query: cursor.query, center: cursor.center, radius: cursor.radius, page: cursor.page + 1)
-        let scope: String? = cursor.center == nil ? nil : (cursor.radius == nil ? "주변엔 없어서 전국에서 찾았어요" : "지도 가운데 근처에서 찾았어요")
+            : PlaceSearchCursor(query: cursor.query, center: cursor.center, radius: cursor.radius, page: cursor.page + 1, area: cursor.area)
+        let scope: String? = if cursor.area != nil {
+            "지금 보이는 지도 안에서 찾았어요"
+        } else if cursor.center == nil {
+            nil
+        } else {
+            cursor.radius == nil ? "주변엔 없어서 전국에서 찾았어요" : "지도 가운데 근처에서 찾았어요"
+        }
         return PlaceSearchPage(results: results, next: next, scope: scope)
     }
 }
@@ -309,5 +353,12 @@ extension MKPointOfInterestCategory {
         case .amusementPark: "놀이공원"
         default: ""
         }
+    }
+}
+
+extension MapArea {
+    nonisolated func contains(_ coordinate: CLLocationCoordinate2D) -> Bool {
+        (southWest.latitude...northEast.latitude).contains(coordinate.latitude)
+            && (southWest.longitude...northEast.longitude).contains(coordinate.longitude)
     }
 }
