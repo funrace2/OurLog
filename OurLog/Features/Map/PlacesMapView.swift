@@ -62,6 +62,13 @@ struct PlacesMapView: View {
                 ZStack(alignment: .top) {
                     map(bottomInset: searchResults.isEmpty ? 0 : panelHeights.inset(for: panelLevel))
 
+                    // 최근 기록이 떠 있을 때 바깥(지도)을 누르면 닫는다
+                    if showHistory {
+                        Color.clear
+                            .contentShape(.rect)
+                            .onTapGesture { closeHistory() }
+                    }
+
                     VStack(spacing: 10) {
                         searchBar
                         if showHistory {
@@ -94,6 +101,8 @@ struct PlacesMapView: View {
                         .padding(.bottom, searchResults.isEmpty ? 0 : panelHeights.inset(for: panelLevel))
                 }
             }
+            // 키보드가 올라와도 지도·기록 창 크기를 바꾸지 않는다 (손그림 테두리가 다시 그려져 흔들리지 않게)
+            .ignoresSafeArea(.keyboard)
             .animation(.snappy, value: searchResults.isEmpty)
             .animation(.snappy, value: showSearchHere)
             .animation(.easeInOut(duration: 0.2), value: showHistory)
@@ -303,8 +312,7 @@ struct PlacesMapView: View {
             if showHistory {
                 // 최근 기록을 닫고 지도로 돌아간다
                 Button {
-                    searchFocused = false
-                    showHistory = false
+                    closeHistory()
                 } label: {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 15, weight: .bold))
@@ -375,6 +383,11 @@ struct PlacesMapView: View {
             print("장소 검색 실패: \(error)")
             app.errorMessage = "검색에 실패했어요. 잠시 후 다시 시도해 주세요."
         }
+    }
+
+    private func closeHistory() {
+        searchFocused = false
+        showHistory = false
     }
 
     /// 최근 기록을 눌렀을 때. 검색어면 다시 검색하고, 장소면 그 자리로 옮겨 미리보기를 연다.

@@ -49,43 +49,53 @@ struct RecentSearchList: View {
                     .foregroundStyle(palette.textSecondary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 28)
-                Spacer(minLength: 0)
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(visibleItems) { item in
-                            HStack(spacing: 12) {
-                                Button { onSelect(item) } label: {
-                                    RecentSearchRow(item: item)
-                                }
-                                .buttonStyle(.plain)
-
-                                Button {
-                                    withAnimation(.snappy) { store.remove(ids: [item.id]) }
-                                } label: {
-                                    Image(systemName: "xmark")
-                                        .font(.system(size: 13, weight: .bold))
-                                        .foregroundStyle(palette.textSecondary)
-                                        .frame(width: 32, height: 32)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                            .padding(.vertical, 10)
-                            .padding(.leading, 16)
-                            .padding(.trailing, 8)
-
-                            SketchDivider(seed: sketchSeed(item.key)).padding(.leading, 62)
-                        }
-                    }
+                // 기록이 적으면 그만큼만, 많으면 화면 끝까지 늘리고 스크롤한다
+                ViewThatFits(in: .vertical) {
+                    rows
+                    ScrollView { rows }
+                        .scrollDismissesKeyboard(.immediately)
                 }
-                .scrollDismissesKeyboard(.immediately)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .frame(maxWidth: .infinity)
         .sketchBox(seed: 357, fill: palette.surface, roughness: 1.3, lineWidth: 1.6)
         .sheet(isPresented: $isEditing) {
             RecentSearchEditView()
         }
+    }
+
+    private var rows: some View {
+        VStack(spacing: 0) {
+            ForEach(visibleItems) { item in
+                HStack(spacing: 12) {
+                    Button { onSelect(item) } label: {
+                        RecentSearchRow(item: item)
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        withAnimation(.snappy) { store.remove(ids: [item.id]) }
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(palette.textSecondary)
+                            .frame(width: 32, height: 32)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.vertical, 10)
+                .padding(.leading, 16)
+                .padding(.trailing, 8)
+
+                if item.id != visibleItems.last?.id {
+                    SketchDivider(seed: sketchSeed(item.key))
+                        .padding(.leading, 62)
+                        .padding(.trailing, 12)
+                }
+            }
+        }
+        .padding(.bottom, 4)
     }
 
     static func normalize(_ text: String) -> String {
@@ -119,12 +129,17 @@ private struct RecentSearchRow: View {
 
             Spacer(minLength: 8)
 
-            Text(item.date.formatted(.dateTime.month(.defaultDigits).day()
-                .locale(Locale(identifier: "ko_KR"))))
+            Text(Self.dateText(item.date))
                 .font(.hand(16))
                 .foregroundStyle(palette.textSecondary)
         }
         .contentShape(.rect)
+    }
+
+    /// "10.20." 처럼 붙여서 쓴다
+    private static func dateText(_ date: Date) -> String {
+        let parts = Calendar.dday.dateComponents([.month, .day], from: date)
+        return "\(parts.month ?? 0).\(parts.day ?? 0)."
     }
 
     @ViewBuilder
@@ -193,7 +208,9 @@ struct RecentSearchEditView: View {
                                 }
                                 .buttonStyle(.plain)
 
-                                SketchDivider(seed: sketchSeed(item.key)).padding(.leading, 50)
+                                SketchDivider(seed: sketchSeed(item.key))
+                                    .padding(.leading, 50)
+                                    .padding(.trailing, 16)
                             }
                         }
                         .padding(.top, 8)
