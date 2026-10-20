@@ -62,6 +62,17 @@ struct SharedCalendarView: View {
                 dayGrid
             }
         }
+        .contentShape(Rectangle())
+        // 좌우로 밀면 달이 넘어간다. 세로 스크롤·날짜 탭은 그대로 두려고 가로로 확실히 민 경우만 받는다.
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 20)
+                .onEnded { value in
+                    let dx = value.translation.width
+                    let dy = value.translation.height
+                    guard abs(dx) > 50, abs(dx) > abs(dy) * 1.5 else { return }
+                    shiftMonth(dx < 0 ? 1 : -1)
+                }
+        )
     }
 
     private var monthHeader: some View {
