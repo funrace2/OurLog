@@ -113,6 +113,19 @@ struct PlacesMapView: View {
             .onChange(of: previewResult) { _, result in
                 if let result { RecentSearchStore.shared.addPlace(result) }
             }
+            // 지도에서 저장한 장소 핀을 눌러 본 것도 남긴다
+            .onChange(of: selectedPlace) { _, place in
+                guard let place else { return }
+                RecentSearchStore.shared.addPlace(PlaceSearchResult(
+                    id: "saved-\(place.id)",
+                    name: place.name,
+                    address: place.address,
+                    category: "",
+                    latitude: place.latitude,
+                    longitude: place.longitude,
+                    link: place.link
+                ))
+            }
             .animation(.easeInOut(duration: 0.2), value: resolvingSymbol)
             // 필터로 고른 카테고리가 지워지면 "전체"로
             .onChange(of: app.categories.map(\.id)) { _, ids in
@@ -402,7 +415,12 @@ struct PlacesMapView: View {
             center.expectingProgrammaticMove = true
             naverFocus = MapFocus(coordinate: result.coordinate)
             camera = .region(MKCoordinateRegion(center: result.coordinate, latitudinalMeters: 1_000, longitudinalMeters: 1_000))
-            previewResult = result
+            // 저장한 곳이면 저장 장소 상세로, 아니면 미리보기로
+            if let saved = app.savedPlace(matching: result) {
+                selectedPlace = saved
+            } else {
+                previewResult = result
+            }
         }
     }
 

@@ -18,6 +18,12 @@ struct RecentSearchList: View {
     @Environment(\.palette) private var palette
     @State private var store = RecentSearchStore.shared
     @State private var isEditing = false
+    /// 목록 내용 높이 (적으면 그만큼만 창을 그린다)
+    @State private var rowsHeight: CGFloat = 0
+    /// 창 아래쪽이 키보드에 가린 높이. 그만큼 스크롤 여백을 줘서 가린 기록까지 올려 볼 수 있게 한다.
+    /// (창 크기를 줄이면 손그림 테두리가 다시 그려져 흔들려서, 창은 그대로 두고 여백만 준다)
+    @State private var keyboardTop: CGFloat = .infinity
+    @State private var boxBottom: CGFloat = 0
 
     private var visibleItems: [RecentSearch] {
         let keyword = Self.normalize(filter)
@@ -51,14 +57,24 @@ struct RecentSearchList: View {
                     .padding(.vertical, 28)
             } else {
                 // 기록이 적으면 그만큼만, 많으면 화면 끝까지 늘리고 스크롤한다
-                ViewThatFits(in: .vertical) {
-                    rows
-                    ScrollView { rows }
-                        .scrollDismissesKeyboard(.immediately)
+                ScrollView {
+                    rows.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { rowsHeight = $0 }
                 }
+                .frame(maxHeight: rowsHeight)
+                .contentMargins(.bottom, max(0, boxBottom - keyboardTop), for: .scrollContent)
+                .scrollBounceBehavior(.basedOnSize)
             }
         }
         .frame(maxWidth: .infinity)
+        .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { boxBottom = $0 }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { note in
+            if let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                keyboardTop = frame.minY
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            keyboardTop = .infinity
+        }
         .sketchBox(seed: 357, fill: palette.surface, roughness: 1.3, lineWidth: 1.6)
         .sheet(isPresented: $isEditing) {
             RecentSearchEditView()
@@ -152,7 +168,7 @@ private struct RecentSearchRow: View {
                 .sketchCircle(fill: palette.surfaceAlt, seed: 365, size: 34)
         case .place(let result):
             // 저장한 곳이면 그 카테고리 아이콘으로
-            if let saved = savedPlace(for: result) {
+            if let saved = app.savedPlace(matching: result) {
                 PlaceIcon(category: app.category(id: saved.categoryID))
             } else {
                 Image(systemName: "mappin")
@@ -163,9 +179,13 @@ private struct RecentSearchRow: View {
         }
     }
 
-    private func savedPlace(for result: PlaceSearchResult) -> SavedPlace? {
+}
+
+extension AppState {
+    /// 검색 결과(또는 기록)가 이미 저장한 곳인지 (이름이 같고 100m 안)
+    func savedPlace(matching result: PlaceSearchResult) -> SavedPlace? {
         let here = CLLocation(latitude: result.latitude, longitude: result.longitude)
-        return app.places.first {
+        return places.first {
             $0.name == result.name
                 && CLLocation(latitude: $0.latitude, longitude: $0.longitude).distance(from: here) < 100
         }
