@@ -180,6 +180,7 @@ struct DiaryDetailView: View {
 
     @State private var showEditor = false
     @State private var showDeleteConfirm = false
+    @State private var openedPlace: SavedPlace?
 
     var body: some View {
         ZStack {
@@ -217,7 +218,10 @@ struct DiaryDetailView: View {
                             }
 
                             if let place = app.place(id: entry.placeID) {
-                                Chip(text: place.name, systemImage: "mappin.and.ellipse")
+                                Button { openedPlace = place } label: {
+                                    Chip(text: place.name, systemImage: "mappin.and.ellipse")
+                                }
+                                .buttonStyle(.plain)
                             }
 
                             if !entry.body.isEmpty {
@@ -250,6 +254,7 @@ struct DiaryDetailView: View {
         .sheet(isPresented: $showEditor) {
             DiaryEditorView(entry: entry)
         }
+        .sheet(item: $openedPlace) { PlaceDetailView(place: $0) }
         .confirmationDialog("이 일기를 삭제할까요?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
             Button("삭제", role: .destructive) {
                 Task { await app.deleteDiary(entry) }

@@ -21,16 +21,30 @@ struct PlaceLinkField: View {
     @Environment(AppState.self) private var app
     @Environment(\.palette) private var palette
     @State private var showPicker = false
+    @State private var openedPlace: SavedPlace?
 
     var body: some View {
         CuteCard {
             VStack(alignment: .leading, spacing: 10) {
-                Text(title)
-                    .font(.hand(18, bold: true))
-                    .foregroundStyle(palette.textSecondary)
+                HStack {
+                    Text(title)
+                        .font(.hand(18, bold: true))
+                        .foregroundStyle(palette.textSecondary)
+                    Spacer()
+                    if app.place(id: placeID) != nil {
+                        Button("바꾸기") { showPicker = true }
+                            .font(.hand(17, bold: true))
+                            .foregroundStyle(palette.pen)
+                    }
+                }
 
+                // 연결된 장소가 있으면 누를 때 상세정보를, 없으면 고르기 창을 연다
                 Button {
-                    showPicker = true
+                    if let place = app.place(id: placeID) {
+                        openedPlace = place
+                    } else {
+                        showPicker = true
+                    }
                 } label: {
                     HStack(spacing: 10) {
                         if let place = app.place(id: placeID) {
@@ -72,6 +86,7 @@ struct PlaceLinkField: View {
         .sheet(isPresented: $showPicker) {
             PlacePickerView(selection: $placeID)
         }
+        .sheet(item: $openedPlace) { PlaceDetailView(place: $0) }
     }
 }
 
