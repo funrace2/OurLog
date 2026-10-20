@@ -201,7 +201,7 @@ struct CatRoomView: View {
                         .padding(.horizontal, 16)
 
                         if index < actions.count - 1 {
-                            SketchDivider().padding(.leading, 16)
+                            SketchDivider().padding(.leading, 16).padding(.trailing, 12)
                         }
                     }
                 }

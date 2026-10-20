@@ -51,7 +51,7 @@ struct AnniversaryListView: View {
                                             .buttonStyle(.plain)
 
                                             if index < custom.count - 1 {
-                                                SketchDivider().padding(.leading, 56)
+                                                SketchDivider().padding(.leading, 56).padding(.trailing, 12)
                                             }
                                         }
                                     }
@@ -71,7 +71,7 @@ struct AnniversaryListView: View {
                                     ForEach(Array(auto.enumerated()), id: \.element.id) { index, anniversary in
                                         AnniversaryRow(anniversary: anniversary)
                                         if index < auto.count - 1 {
-                                            SketchDivider().padding(.leading, 56)
+                                            SketchDivider().padding(.leading, 56).padding(.trailing, 12)
                                         }
                                     }
                                 }

@@ -509,7 +509,7 @@ struct PlacesMapView: View {
                 }
                 .buttonStyle(.plain)
 
-                SketchDivider().padding(.leading, 16)
+                SketchDivider().padding(.leading, 16).padding(.trailing, 12)
             }
 
             if searchNext != nil {

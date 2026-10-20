@@ -131,7 +131,7 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.plain)
 
-                SketchDivider().padding(.leading, 52)
+                SketchDivider().padding(.leading, 52).padding(.trailing, 12)
 
                 Button {
                     Task {
@@ -147,7 +147,7 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.plain)
 
-                SketchDivider().padding(.leading, 52)
+                SketchDivider().padding(.leading, 52).padding(.trailing, 12)
 
                 Button { showSignOutConfirm = true } label: {
                     menuRow(icon: "rectangle.portrait.and.arrow.right", title: "로그아웃", tint: .red)

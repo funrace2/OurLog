@@ -248,7 +248,7 @@ private struct AnniversarySection: View {
                         ForEach(Array(upcoming.enumerated()), id: \.element.id) { index, anniversary in
                             AnniversaryRow(anniversary: anniversary)
                             if index < upcoming.count - 1 {
-                                SketchDivider().padding(.leading, 56)
+                                SketchDivider().padding(.leading, 56).padding(.trailing, 12)
                             }
                         }
                     }
