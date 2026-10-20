@@ -82,7 +82,7 @@ nonisolated struct SavedPlace: Identifiable, Codable, Hashable, Sendable {
 }
 
 /// 검색 결과 한 건. 아직 저장 전 상태라 id 가 없다.
-nonisolated struct PlaceSearchResult: Identifiable, Hashable, Sendable {
+nonisolated struct PlaceSearchResult: Identifiable, Hashable, Codable, Sendable {
     let id: String
     let name: String
     let address: String

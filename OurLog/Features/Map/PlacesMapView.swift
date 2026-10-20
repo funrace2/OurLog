@@ -28,6 +28,9 @@ struct PlacesMapView: View {
     @State private var showSearchHere = false
     /// 아래에서 올라오는 검색 결과 판의 높이 단계
     @State private var panelLevel: ResultsPanelLevel = .middle
+    /// 검색창을 누르면 최근 기록을 띄운다. 키보드가 내려가도 그대로 두고, 검색하거나 뒤로 가기를 눌러야 닫힌다.
+    @State private var showHistory = false
+    @FocusState private var searchFocused: Bool
     @State private var selectedCategoryID: String?
     @State private var showList = false
 
@@ -61,17 +64,23 @@ struct PlacesMapView: View {
 
                     VStack(spacing: 10) {
                         searchBar
-                        categoryFilter
-                        if showSearchHere && !searchResults.isEmpty {
-                            searchHereButton
-                                .transition(.move(edge: .top).combined(with: .opacity))
+                        if showHistory {
+                            RecentSearchList(filter: searchText) { openRecent($0) }
+                                .padding(.bottom, 8)
+                                .transition(.opacity)
+                        } else {
+                            categoryFilter
+                            if showSearchHere && !searchResults.isEmpty {
+                                searchHereButton
+                                    .transition(.move(edge: .top).combined(with: .opacity))
+                            }
                         }
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 6)
                 }
                 .overlay(alignment: .bottom) {
-                    if !searchResults.isEmpty {
+                    if !searchResults.isEmpty && !showHistory {
                         ResultsPanel(level: $panelLevel, heights: panelHeights) {
                             resultsHeader
                         } content: {
@@ -87,6 +96,14 @@ struct PlacesMapView: View {
             }
             .animation(.snappy, value: searchResults.isEmpty)
             .animation(.snappy, value: showSearchHere)
+            .animation(.easeInOut(duration: 0.2), value: showHistory)
+            .onChange(of: searchFocused) { _, focused in
+                if focused { showHistory = true }
+            }
+            // 미리보기로 연 장소는 최근 기록에 남긴다
+            .onChange(of: previewResult) { _, result in
+                if let result { RecentSearchStore.shared.addPlace(result) }
+            }
             .animation(.easeInOut(duration: 0.2), value: resolvingSymbol)
             // 필터로 고른 카테고리가 지워지면 "전체"로
             .onChange(of: app.categories.map(\.id)) { _, ids in
@@ -283,20 +300,35 @@ struct PlacesMapView: View {
 
     private var searchBar: some View {
         HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(palette.textSecondary)
+            if showHistory {
+                // 최근 기록을 닫고 지도로 돌아간다
+                Button {
+                    searchFocused = false
+                    showHistory = false
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(palette.ink)
+                }
+                .buttonStyle(.plain)
+            } else {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(palette.textSecondary)
+            }
 
             TextField("장소, 가게 이름으로 검색", text: $searchText)
                 .font(.hand(20))
                 .submitLabel(.search)
+                .focused($searchFocused)
                 .onSubmit { Task { await runSearch() } }
 
             if isSearching {
                 ProgressView().controlSize(.small)
             } else if !searchText.isEmpty {
                 Button {
-                    clearSearch()
+                    // 기록을 보는 중엔 글자만 지우고, 아니면 검색 결과까지 걷어낸다
+                    if showHistory { searchText = "" } else { clearSearch() }
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(palette.textSecondary)
@@ -312,6 +344,9 @@ struct PlacesMapView: View {
         let query = searchText.trimmingCharacters(in: .whitespaces)
         guard !query.isEmpty else { return }
 
+        RecentSearchStore.shared.addQuery(query)
+        searchFocused = false
+        showHistory = false
         isSearching = true
         defer { isSearching = false }
 
@@ -339,6 +374,22 @@ struct PlacesMapView: View {
         } catch {
             print("장소 검색 실패: \(error)")
             app.errorMessage = "검색에 실패했어요. 잠시 후 다시 시도해 주세요."
+        }
+    }
+
+    /// 최근 기록을 눌렀을 때. 검색어면 다시 검색하고, 장소면 그 자리로 옮겨 미리보기를 연다.
+    private func openRecent(_ item: RecentSearch) {
+        switch item.kind {
+        case .query(let text):
+            searchText = text
+            Task { await runSearch() }
+        case .place(let result):
+            searchFocused = false
+            showHistory = false
+            center.expectingProgrammaticMove = true
+            naverFocus = MapFocus(coordinate: result.coordinate)
+            camera = .region(MKCoordinateRegion(center: result.coordinate, latitudinalMeters: 1_000, longitudinalMeters: 1_000))
+            previewResult = result
         }
     }
 
