@@ -286,6 +286,23 @@ struct CuteBackground: View {
     var body: some View {
         palette.paper
             .ignoresSafeArea()
+            .paperBars()
+    }
+}
+
+extension View {
+    /// 상단바·탭바를 테마 종이색으로 칠한다. CuteBackground 가 알아서 걸어 주고,
+    /// 지도처럼 종이 배경을 깔지 않는 화면은 직접 걸어야 다른 탭과 같은 모양이 된다.
+    func paperBars() -> some View {
+        modifier(PaperBars())
+    }
+}
+
+private struct PaperBars: ViewModifier {
+    @Environment(\.palette) private var palette
+
+    func body(content: Content) -> some View {
+        content
             .toolbarBackground(palette.paper, for: .navigationBar, .tabBar)
             .toolbarBackground(.visible, for: .navigationBar, .tabBar)
     }

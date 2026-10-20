@@ -86,6 +86,8 @@ struct PlacesMapView: View {
             .onChange(of: app.categories.map(\.id)) { _, ids in
                 if let selected = selectedCategoryID, !ids.contains(selected) { selectedCategoryID = nil }
             }
+            // 바탕이 종이가 아니라 지도라서, 상단바·탭바 색을 직접 맞춘다 (다른 탭과 같은 모양)
+            .paperBars()
             .navigationTitle("우리 지도")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
