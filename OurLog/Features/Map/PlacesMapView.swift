@@ -100,7 +100,7 @@ struct PlacesMapView: View {
                 SavedPlaceListView()
             }
             .sheet(item: $previewResult) { result in
-                PlacePreviewView(result: result)
+                PlacePreviewView(result: result, onSaved: { _ in clearSearch() })
             }
             .sheet(item: $selectedPlace) { place in
                 PlaceDetailView(place: place)
@@ -176,6 +176,14 @@ struct PlacesMapView: View {
 
     // MARK: 검색
 
+    /// 검색어와 검색 결과 핀을 모두 걷어낸다. (저장을 마치면 저장한 핀만 남도록)
+    private func clearSearch() {
+        searchText = ""
+        searchResults = []
+        searchNext = nil
+        searchScope = nil
+    }
+
     private var searchBar: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
@@ -191,10 +199,7 @@ struct PlacesMapView: View {
                 ProgressView().controlSize(.small)
             } else if !searchText.isEmpty {
                 Button {
-                    searchText = ""
-                    searchResults = []
-                    searchNext = nil
-                    searchScope = nil
+                    clearSearch()
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(palette.textSecondary)

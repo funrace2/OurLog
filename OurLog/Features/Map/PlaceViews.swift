@@ -16,6 +16,8 @@ struct PlacePreviewView: View {
     /// 일정·일기에서 장소를 고르는 중이면, 저장(또는 이미 저장된 곳 선택) 후 그 장소를 돌려준다.
     /// nil 이면 지도에서 연 평소 미리보기.
     var onPick: ((SavedPlace) -> Void)?
+    /// 지도에서 연 미리보기에서 새로 저장했을 때 (검색 결과를 걷어내는 데 쓴다)
+    var onSaved: ((SavedPlace) -> Void)?
 
     @Environment(AppState.self) private var app
     @Environment(\.palette) private var palette
@@ -28,9 +30,10 @@ struct PlacePreviewView: View {
     @State private var webPage: WebPage?
     @State private var savedToOpen: SavedPlace?
 
-    init(result: PlaceSearchResult, onPick: ((SavedPlace) -> Void)? = nil) {
+    init(result: PlaceSearchResult, onPick: ((SavedPlace) -> Void)? = nil, onSaved: ((SavedPlace) -> Void)? = nil) {
         self.result = result
         self.onPick = onPick
+        self.onSaved = onSaved
         let cached = PlaceInfoService.shared.cachedInfo(for: result.lookup)
         _info = State(initialValue: cached ?? PlaceInfo())
         _isLoadingInfo = State(initialValue: cached == nil && PlaceInfoService.isAvailable)
@@ -133,6 +136,7 @@ struct PlacePreviewView: View {
                     if let onPick {
                         onPick(place)       // 고르는 중이면 부른 쪽이 창들을 한 번에 닫는다
                     } else {
+                        onSaved?(place)
                         dismiss()
                     }
                 })
