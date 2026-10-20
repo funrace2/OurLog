@@ -31,8 +31,7 @@ struct CatRoomView: View {
                     .padding(.bottom, 24)
                 }
             }
-            .navigationTitle("우리 고양이")
-            .navigationBarTitleDisplayMode(.inline)
+            .paperTitle("우리 고양이")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showDecorate = true } label: {

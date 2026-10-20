@@ -46,8 +46,7 @@ struct DiaryListView: View {
                     }
                 }
             }
-            .navigationTitle("데이트 일기")
-            .navigationBarTitleDisplayMode(.inline)
+            .paperTitle("데이트 일기")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showEditor = true } label: {
@@ -237,8 +236,7 @@ struct DiaryDetailView: View {
                 .padding(20)
             }
         }
-        .navigationTitle("일기")
-        .navigationBarTitleDisplayMode(.inline)
+        .paperTitle("일기")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
@@ -322,11 +320,10 @@ struct DiaryEditorView: View {
                     .padding(20)
                 }
             }
-            .navigationTitle(entry == nil ? "새 일기" : "일기 수정")
-            .navigationBarTitleDisplayMode(.inline)
+            .paperTitle(entry == nil ? "새 일기" : "일기 수정")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("취소") { dismiss() }
+                    ToolbarTextButton("취소") { dismiss() }
                 }
             }
             .onAppear(perform: load)

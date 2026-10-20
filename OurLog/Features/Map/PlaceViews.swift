@@ -121,11 +121,10 @@ struct PlacePreviewView: View {
                     .padding(20)
                 }
             }
-            .navigationTitle("장소 미리보기")
-            .navigationBarTitleDisplayMode(.inline)
+            .paperTitle("장소 미리보기")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("닫기") { dismiss() }
+                    ToolbarTextButton("닫기") { dismiss() }
                 }
             }
             // 저장이 끝나면 미리보기까지 한 번에 닫는다
@@ -205,11 +204,10 @@ struct SavePlaceView: View {
                     .padding(20)
                 }
             }
-            .navigationTitle("장소 저장")
-            .navigationBarTitleDisplayMode(.inline)
+            .paperTitle("장소 저장")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("취소") { dismiss() }
+                    ToolbarTextButton("취소") { dismiss() }
                 }
             }
         }
@@ -370,14 +368,13 @@ struct PlaceDetailView: View {
                     .padding(20)
                 }
             }
-            .navigationTitle("장소")
-            .navigationBarTitleDisplayMode(.inline)
+            .paperTitle("장소")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("수정") { showEdit = true }
+                    ToolbarTextButton("수정") { showEdit = true }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("닫기") { dismiss() }
+                    ToolbarTextButton("닫기") { dismiss() }
                 }
             }
             .sheet(isPresented: $showEdit) {
@@ -499,11 +496,10 @@ struct EditPlaceView: View {
                     .padding(20)
                 }
             }
-            .navigationTitle("장소 수정")
-            .navigationBarTitleDisplayMode(.inline)
+            .paperTitle("장소 수정")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("취소") { dismiss() }
+                    ToolbarTextButton("취소") { dismiss() }
                 }
             }
         }
@@ -928,8 +924,7 @@ struct SavedPlaceListView: View {
                     .padding(.vertical, 12)
                 }
             }
-            .navigationTitle("저장한 장소")
-            .navigationBarTitleDisplayMode(.inline)
+            .paperTitle("저장한 장소")
             .sheet(isPresented: $showCategories) { CategoryManagerView() }
             // 필터로 고른 카테고리가 지워지면 "전체"로
             .onChange(of: app.categories.map(\.id)) { _, ids in
@@ -937,10 +932,10 @@ struct SavedPlaceListView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("카테고리") { showCategories = true }
+                    ToolbarTextButton("카테고리") { showCategories = true }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("닫기") { dismiss() }
+                    ToolbarTextButton("닫기") { dismiss() }
                 }
             }
             .sheet(item: $selectedPlace) { PlaceDetailView(place: $0) }

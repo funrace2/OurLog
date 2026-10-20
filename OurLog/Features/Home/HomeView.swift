@@ -35,8 +35,7 @@ struct HomeView: View {
                     .padding(.bottom, 24)
                 }
             }
-            .navigationTitle("우리집")
-            .navigationBarTitleDisplayMode(.inline)
+            .paperTitle("우리집")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showSettings = true } label: {

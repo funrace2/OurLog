@@ -34,11 +34,10 @@ struct SettingsView: View {
                     .padding(20)
                 }
             }
-            .navigationTitle("설정")
-            .navigationBarTitleDisplayMode(.inline)
+            .paperTitle("설정")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("닫기") { dismiss() }
+                    ToolbarTextButton("닫기") { dismiss() }
                 }
             }
             .sheet(isPresented: $showProfileEditor) { ProfileEditorView() }
@@ -291,8 +290,7 @@ private struct StartDateSheet: View {
                 }
                 .padding(.vertical, 12)
             }
-            .navigationTitle("처음 만난 날")
-            .navigationBarTitleDisplayMode(.inline)
+            .paperTitle("처음 만난 날")
         }
     }
 }
@@ -383,11 +381,10 @@ struct ProfileEditorView: View {
                     .padding(20)
                 }
             }
-            .navigationTitle("프로필")
-            .navigationBarTitleDisplayMode(.inline)
+            .paperTitle("프로필")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("취소") { dismiss() }
+                    ToolbarTextButton("취소") { dismiss() }
                 }
             }
             .onAppear {

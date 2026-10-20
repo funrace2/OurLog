@@ -195,19 +195,18 @@ struct PlacePickerView: View {
                     .padding(.vertical, 12)
                 }
             }
-            .navigationTitle("장소 고르기")
-            .navigationBarTitleDisplayMode(.inline)
+            .paperTitle("장소 고르기")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     if selection != nil {
-                        Button("연결 안 함") {
+                        ToolbarTextButton("연결 안 함") {
                             selection = nil
                             dismiss()
                         }
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("닫기") { dismiss() }
+                    ToolbarTextButton("닫기") { dismiss() }
                 }
             }
         }
@@ -377,8 +376,7 @@ struct NewPlaceSearchView: View {
                 .padding(.vertical, 12)
             }
         }
-        .navigationTitle("새 장소 찾기")
-        .navigationBarTitleDisplayMode(.inline)
+        .paperTitle("새 장소 찾기")
         .sheet(item: $preview) { result in
             PlacePreviewView(result: result, onPick: onPick)
         }

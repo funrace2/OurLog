@@ -21,15 +21,19 @@ struct OurLogApp: App {
             NMFAuthManager.shared().client = NMFNcpKeyClient(ncpKeyId: key, beta: false)
         }
 
-        // 내비게이션 제목과 탭 글씨도 손글씨로 (배경색은 화면마다 테마 종이색으로 칠한다)
-        if let title = UIFont(name: Theme.fontName, size: 24),
-           let large = UIFont(name: Theme.fontName, size: 38),
-           let tab = UIFont(name: Theme.fontName, size: 13) {
-            let ink = UIColor(Theme.ink)
-            UINavigationBar.appearance().titleTextAttributes = [.font: title, .foregroundColor: ink]
-            UINavigationBar.appearance().largeTitleTextAttributes = [.font: large, .foregroundColor: ink]
-            UITabBarItem.appearance().setTitleTextAttributes([.font: tab], for: .normal)
-            UIBarButtonItem.appearance().setTitleTextAttributes([.font: UIFont(name: Theme.fontName, size: 19) ?? title], for: .normal)
+        // 하단 탭 글씨를 손글씨로. (상단바 제목·버튼은 화면마다 paperTitle / ToolbarTextButton 으로 직접 그린다.
+        // 예전의 UINavigationBar 전역 글꼴 설정은 상단바 색을 SwiftUI 로 칠하면 무시돼서 뺐다.)
+        if let tabFont = UIFont(name: Theme.fontName, size: 13) {
+            let item = UITabBarItemAppearance()
+            item.normal.titleTextAttributes = [.font: tabFont]
+            item.selected.titleTextAttributes = [.font: tabFont]
+            let appearance = UITabBarAppearance()
+            appearance.configureWithOpaqueBackground()
+            appearance.stackedLayoutAppearance = item
+            appearance.inlineLayoutAppearance = item
+            appearance.compactInlineLayoutAppearance = item
+            UITabBar.appearance().standardAppearance = appearance
+            UITabBar.appearance().scrollEdgeAppearance = appearance
         }
     }
 

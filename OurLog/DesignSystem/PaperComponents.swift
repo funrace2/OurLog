@@ -291,10 +291,54 @@ struct CuteBackground: View {
 }
 
 extension View {
+    /// 상단바 제목을 손글씨로. (UIKit 전역 글꼴 설정은 상단바 색을 SwiftUI 로 칠하면 무시돼서,
+    /// 제목을 가운데 자리에 직접 그린다. navigationTitle 도 함께 둬서 뒤로가기 이름 등에 쓰이게 한다.)
+    func paperTitle(_ title: String) -> some View {
+        modifier(PaperTitle(title: title))
+    }
+
     /// 상단바·탭바를 테마 종이색으로 칠한다. CuteBackground 가 알아서 걸어 주고,
     /// 지도처럼 종이 배경을 깔지 않는 화면은 직접 걸어야 다른 탭과 같은 모양이 된다.
     func paperBars() -> some View {
         modifier(PaperBars())
+    }
+}
+
+private struct PaperTitle: ViewModifier {
+    let title: String
+    @Environment(\.palette) private var palette
+
+    func body(content: Content) -> some View {
+        content
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text(title)
+                        .font(.hand(24, bold: true))
+                        .foregroundStyle(palette.ink)
+                        .lineLimit(1)
+                }
+            }
+    }
+}
+
+/// 상단바에 들어가는 글자 버튼 ("닫기", "취소" …). 라벨에 손글씨를 직접 지정한다.
+struct ToolbarTextButton: View {
+    let title: String
+    var role: ButtonRole?
+    let action: () -> Void
+
+    init(_ title: String, role: ButtonRole? = nil, action: @escaping () -> Void) {
+        self.title = title
+        self.role = role
+        self.action = action
+    }
+
+    var body: some View {
+        Button(role: role, action: action) {
+            Text(title).font(.hand(20, bold: true))
+        }
     }
 }
 

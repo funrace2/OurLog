@@ -51,11 +51,10 @@ struct CategoryManagerView: View {
                     .padding(20)
                 }
             }
-            .navigationTitle("카테고리")
-            .navigationBarTitleDisplayMode(.inline)
+            .paperTitle("카테고리")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("닫기") { dismiss() }
+                    ToolbarTextButton("닫기") { dismiss() }
                 }
             }
             .sheet(item: $editing) { CategoryEditorView(category: $0) }
@@ -247,11 +246,10 @@ struct CategoryEditorView: View {
                     .padding(20)
                 }
             }
-            .navigationTitle(category == nil ? "새 카테고리" : "카테고리 수정")
-            .navigationBarTitleDisplayMode(.inline)
+            .paperTitle(category == nil ? "새 카테고리" : "카테고리 수정")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("취소") { dismiss() }
+                    ToolbarTextButton("취소") { dismiss() }
                 }
             }
         }

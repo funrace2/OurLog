@@ -92,11 +92,10 @@ struct EventEditorView: View {
                     .padding(20)
                 }
             }
-            .navigationTitle(isEditing ? "일정 수정" : "새 일정")
-            .navigationBarTitleDisplayMode(.inline)
+            .paperTitle(isEditing ? "일정 수정" : "새 일정")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("취소") { dismiss() }
+                    ToolbarTextButton("취소") { dismiss() }
                 }
             }
             .confirmationDialog("이 일정을 삭제할까요?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {

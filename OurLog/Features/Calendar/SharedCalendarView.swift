@@ -31,8 +31,7 @@ struct SharedCalendarView: View {
                     .padding(.bottom, 24)
                 }
             }
-            .navigationTitle("우리 달력")
-            .navigationBarTitleDisplayMode(.inline)
+            .paperTitle("우리 달력")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {

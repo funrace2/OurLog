@@ -86,11 +86,10 @@ struct AnniversaryListView: View {
                     .padding(20)
                 }
             }
-            .navigationTitle("기념일")
-            .navigationBarTitleDisplayMode(.inline)
+            .paperTitle("기념일")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("닫기") { dismiss() }
+                    ToolbarTextButton("닫기") { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -244,11 +243,10 @@ struct AnniversaryEditorView: View {
                     .padding(20)
                 }
             }
-            .navigationTitle(anniversary == nil ? "새 기념일" : "기념일 수정")
-            .navigationBarTitleDisplayMode(.inline)
+            .paperTitle(anniversary == nil ? "새 기념일" : "기념일 수정")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("취소") { dismiss() }
+                    ToolbarTextButton("취소") { dismiss() }
                 }
             }
             .confirmationDialog("이 기념일을 삭제할까요?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {

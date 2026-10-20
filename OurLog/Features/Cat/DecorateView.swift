@@ -55,12 +55,10 @@ struct DecorateView: View {
                     }
                 }
             }
-            .navigationTitle("꾸미기")
-            .navigationBarTitleDisplayMode(.inline)
+            .paperTitle("꾸미기")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("완료") { dismiss() }
-                        .font(.hand(20, bold: true))
+                    ToolbarTextButton("완료") { dismiss() }
                 }
             }
         }
