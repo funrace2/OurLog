@@ -82,8 +82,6 @@ struct PlacePreviewView: View {
                             }
                         }
 
-                        PlaceReviewsSection(posts: info.posts) { webPage = WebPage(url: $0) }
-
                         if let saved = alreadySaved {
                             VStack(spacing: 8) {
                                 Text("이미 저장한 장소예요")
@@ -113,6 +111,8 @@ struct PlacePreviewView: View {
                             }
                             .buttonStyle(.soft)
                         }
+
+                        PlaceReviewsSection(posts: info.posts) { webPage = WebPage(url: $0) }
 
                         PlaceActionButtons(
                             lookup: result.lookup,
@@ -566,7 +566,7 @@ struct PlacePhotoStrip: View {
                     ForEach(0..<3, id: \.self) { index in
                         palette.paperDeep
                             .frame(width: 130, height: 160)
-                            .sketchBox(seed: UInt64(index) &+ 440, fill: .clear, roughness: 1.2, lineWidth: 1.6)
+                            .sketchFramed(seed: UInt64(index) &+ 440, roughness: 1.2, lineWidth: 1.6)
                     }
                 }
                 .padding(.horizontal, 2)
@@ -582,8 +582,7 @@ struct PlacePhotoStrip: View {
                             } label: {
                                 RemoteImage(url: photo.url, maxPixel: 600)
                                     .frame(width: 130, height: 160)
-                                    .clipped()
-                                    .sketchBox(seed: UInt64(index) &+ 440, fill: .clear, roughness: 1.2, lineWidth: 1.6)
+                                    .sketchFramed(seed: UInt64(index) &+ 440, roughness: 1.2, lineWidth: 1.6)
                             }
                             .buttonStyle(.plain)
                         }
@@ -655,8 +654,7 @@ struct PlaceMapPreview: View {
     var body: some View {
         map
             .frame(height: 150)
-            .clipShape(.rect(cornerRadius: 6))
-            .sketchBox(seed: sketchSeed("\(coordinate.latitude),\(coordinate.longitude)"), fill: .clear)
+            .sketchFramed(seed: sketchSeed("\(coordinate.latitude),\(coordinate.longitude)"))
             .allowsHitTesting(false)
     }
 

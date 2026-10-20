@@ -148,4 +148,18 @@ extension View {
             .background(shape.fill(fill))
             .overlay(shape.stroke(stroke, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)))
     }
+
+    /// 사진·지도처럼 꽉 찬 내용을 손그림 테두리 모양대로 잘라 두른다
+    /// (sketchBox 는 테두리가 안쪽으로 들어와 그려져서, 꽉 찬 내용이면 모서리가 테두리 밖으로 삐져나온다).
+    func sketchFramed(
+        seed: UInt64,
+        stroke: Color = Theme.ink,
+        roughness: CGFloat = 1.8,
+        lineWidth: CGFloat = 2.2
+    ) -> some View {
+        let shape = SketchRectangle(seed: seed, roughness: roughness)
+        return self
+            .clipShape(shape)
+            .overlay(shape.stroke(stroke, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)))
+    }
 }
